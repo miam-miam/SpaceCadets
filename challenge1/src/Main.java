@@ -45,8 +45,11 @@ public class Main {
       int count = 0;
       for (Element col : table) {
         count += 1;
+        // Get the link (a) tag that contains a link to an https page who has as parent the first td
+        // element of the table.
         String Name = col.select("td:eq(0) a[href^=\"https://\"]").text();
         String Role = col.select("td:eq(1)").text();
+        // Get the mailto: link and then remove mailto: to produce the email address.
         String Email = col.select("td:eq(3) a").attr("href").substring(7);
         String Phone = col.select("td:eq(4)").text();
         if (!Phone.isEmpty()) {
@@ -54,7 +57,7 @@ public class Main {
         }
         System.out.printf("Name: %s, Role: %s, Email: %s%s\n", Name, Role, Email, Phone);
         if (count == 10) {
-          System.out.printf("Showed first %s results", count);
+          System.out.printf("Only showing the first %s results", count);
           return;
         }
       }

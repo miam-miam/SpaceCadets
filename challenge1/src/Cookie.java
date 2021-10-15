@@ -33,7 +33,7 @@ public class Cookie {
   public void Update() {
     // Get Values from User using Scanner
     System.out.print(
-        "To update cookies please login into https://secure.ecs.soton.ac.uk/ and copy the cookie values here.\nName (Should start with _shibsession_): ");
+        "To update the authentication cookie please login into https://secure.ecs.soton.ac.uk/ and copy the cookie name and value here.\nName (Should start with _shibsession_): ");
     Scanner in = new Scanner(System.in);
     name = in.nextLine();
     System.out.print("Cookie value: ");
