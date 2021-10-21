@@ -23,7 +23,7 @@ public class Parser {
       Pattern.compile(
           "(?:incr\\s+(\\w)|decr\\s+(\\w)|clear\\s+(\\w)|while\\s+(\\w)\\s+not\\s+0\\s+do|(end))\\s*;\\s*|\\s*//(.*)");
   public List<Command> Instructions = new LinkedList<>();
-  public Stack<Integer> OpenLoops = new Stack<>();
+  private final Stack<Integer> OpenLoops = new Stack<>();
   public List<Loop> Loops = new LinkedList<>();
   public List<String> Vars = new LinkedList<>();
   public HashMap<Integer, String> Comments = new HashMap<>();
