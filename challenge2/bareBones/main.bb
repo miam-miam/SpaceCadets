@@ -1,7 +1,7 @@
-clear X;
+clear X; clear X; //
 incr X;
 incr X;
-clear Y;
+clear Y; // Hoi
 incr Y;
 incr Y; // Test
 incr Y;

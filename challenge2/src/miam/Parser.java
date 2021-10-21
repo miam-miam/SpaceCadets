@@ -5,8 +5,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.EmptyStackException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
@@ -21,11 +21,12 @@ import miam.Command.CommandType;
 public class Parser {
   public static final Pattern PATTERN =
       Pattern.compile(
-          "(?:incr\\s+(\\w)|decr\\s+(\\w)|clear\\s+(\\w)|while\\s+(\\w)\\s+not\\s+0\\s+do|(end))\\s*;\\s*|\\s*(//.*)");
+          "(?:incr\\s+(\\w)|decr\\s+(\\w)|clear\\s+(\\w)|while\\s+(\\w)\\s+not\\s+0\\s+do|(end))\\s*;\\s*|\\s*//(.*)");
   public List<Command> Instructions = new LinkedList<>();
   public Stack<Integer> OpenLoops = new Stack<>();
   public List<Loop> Loops = new LinkedList<>();
   public List<String> Vars = new LinkedList<>();
+  public HashMap<Integer, String> Comments = new HashMap<>();
 
   public Parser(String file) throws BareBonesException {
     File code = new File(file);
@@ -35,23 +36,24 @@ public class Parser {
     try {
       FileReader fileReader = new FileReader(code);
       BufferedReader bufferedReader = new BufferedReader(fileReader);
-      StringBuilder stringFile = new StringBuilder();
       String line;
       while ((line = bufferedReader.readLine()) != null) {
         try {
           Matcher matcher = PATTERN.matcher(line);
-          System.out.println("line: " + line);
-          System.out.println("looking: " + matcher.find(0));
-          System.out.println(matcher);
+          if (!matcher.find(0)) {
+            throw new BareBonesException("Unexpected token.");
+          }
           AddCommand(matcher);
           while (!matcher.hitEnd()) {
             // More than one command on a single line.
-            System.out.println("matching: " + matcher.find(matcher.end()));
-            System.out.println(matcher);
+            if (!matcher.find(matcher.end())) {
+              throw new BareBonesException("Unexpected token.");
+            }
             AddCommand(matcher);
           }
         } catch (BareBonesException e) {
-          throw new BareBonesException(e.getMessage() + "On this line: " + line);
+          fileReader.close(); // Need to make sure to close the file as throw returns from func
+          throw new BareBonesException(e.getMessage() + " On this line: " + line);
         }
       }
       fileReader.close();
@@ -65,7 +67,6 @@ public class Parser {
   public void AddCommand(Matcher match) throws BareBonesException {
     String res;
     int varIndex;
-    System.out.println(match.toMatchResult());
     if ((res = match.group(1)) != null) {
       if ((varIndex = Vars.indexOf(res)) == -1) {
         throw new BareBonesException("Variable used before it is instantiated.");
@@ -99,6 +100,7 @@ public class Parser {
       }
     } else if (match.group(6) != null) {
       // This is where comments are matched.
+      Comments.put(Instructions.size() - 1, match.group(6));
     }
   }
 }
