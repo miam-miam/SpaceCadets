@@ -21,5 +21,12 @@ public class Main {
     } catch (IOException e) {
       throw new BareBonesException("Could not write formatted file.");
     }
+    try {
+      Transpiler.Rust(parser, "bareBones/main.rs");
+    } catch (IOException e) {
+      throw new BareBonesException("Could not write formatted file.");
+    }
+    Interpreter interpreter = new Interpreter(parser);
+    interpreter.start();
   }
 }

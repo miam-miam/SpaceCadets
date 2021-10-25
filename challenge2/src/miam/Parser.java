@@ -19,11 +19,11 @@ import miam.Command.CommandType;
 // (/\s*(?:(?:incr\s+(\w)\s*;)|(?:decr\s{1,}(\w)\s*;)|(?:clear\s+(\w)\s*;)|(?:while\s+(\w)\s+not\s+0\s+do\s*;(?R)*\s*(end)\s*;))/gA)
 
 public class Parser {
-  public static final Pattern PATTERN =
+  private static final Pattern PATTERN =
       Pattern.compile(
           "(?:incr\\s+(\\w)|decr\\s+(\\w)|clear\\s+(\\w)|while\\s+(\\w)\\s+not\\s+0\\s+do|(end))\\s*;\\s*|\\s*//(.*)");
-  public List<Command> Instructions = new LinkedList<>();
   private final Stack<Integer> OpenLoops = new Stack<>();
+  public List<Command> Instructions = new LinkedList<>();
   public List<Loop> Loops = new LinkedList<>();
   public List<String> Vars = new LinkedList<>();
   public HashMap<Integer, String> Comments = new HashMap<>();
@@ -94,7 +94,13 @@ public class Parser {
       Instructions.add(new Command(CommandType.WHILE, Loops.size() - 1));
     } else if (match.group(5) != null) {
       try {
-        Instructions.add(new Command(CommandType.END, OpenLoops.pop()));
+        Integer loopIdx = OpenLoops.pop();
+        // Edit loops array to include the position of the end instruction.
+        Loop loopObj = Loops.get(loopIdx);
+        loopObj.End = Instructions.size(); // End instruction not yet added so no need to -1
+        Loops.set(loopIdx, loopObj);
+
+        Instructions.add(new Command(CommandType.END, loopIdx));
       } catch (EmptyStackException e) {
         throw new BareBonesException("Unexpected \"end;\".");
       }

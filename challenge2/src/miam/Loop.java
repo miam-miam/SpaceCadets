@@ -2,10 +2,11 @@ package miam;
 
 public class Loop {
   public final int Variable;
-  public final int Command;
+  public final int Start;
+  public int End;
 
-  public Loop(int variable, int command) {
+  public Loop(int variable, int start) {
     Variable = variable;
-    Command = command;
+    Start = start;
   }
 }
