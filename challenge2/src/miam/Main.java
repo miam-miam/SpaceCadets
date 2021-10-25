@@ -26,6 +26,11 @@ public class Main {
     } catch (IOException e) {
       throw new BareBonesException("Could not write formatted file.");
     }
+    try {
+      Transpiler.CPP(parser, "bareBones/main.cpp");
+    } catch (IOException e) {
+      throw new BareBonesException("Could not write formatted file.");
+    }
     Interpreter interpreter = new Interpreter(parser);
     interpreter.start();
   }

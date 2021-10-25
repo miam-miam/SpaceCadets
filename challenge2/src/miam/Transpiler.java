@@ -178,4 +178,50 @@ public class Transpiler {
     fileWriter.write("}");
     fileWriter.close();
   }
+
+  public static void CPP(Parser parser, String file) throws IOException {
+    FileWriter fileWriter = new FileWriter(file);
+    String indent = "    ";
+    String comment;
+    int LineNum = 0;
+    fileWriter.write("int main() {\n");
+    for (String var : parser.Vars) {
+      fileWriter.write(indent + "int " + var + ";\n");
+    }
+    for (Command command : parser.Instructions) {
+      LineNum += 1;
+      switch (command.Type) {
+        case INCR:
+          fileWriter.write(indent + parser.Vars.get(command.Id) + " += 1;");
+          break;
+        case DECR:
+          fileWriter.write(indent + parser.Vars.get(command.Id) + " -= 1;");
+          break;
+        case CLEAR:
+          fileWriter.write(indent + parser.Vars.get(command.Id) + " = 0;");
+          break;
+        case WHILE:
+          fileWriter.write(
+              indent
+                  + "while ("
+                  + parser.Vars.get(parser.Loops.get(command.Id).Variable)
+                  + " != 0) {");
+          indent += "    ";
+          // Not using string builder as there are relatively few while loops and it
+          // would also require us to create a new instance whenever end is called.
+          break;
+        case END:
+          indent = indent.substring(4);
+          fileWriter.write(indent + "}");
+          break;
+      }
+      if ((comment = parser.Comments.get(LineNum)) != null && !comment.trim().equals("")) {
+        fileWriter.write(" //" + comment + "\n");
+      } else {
+        fileWriter.write("\n");
+      }
+    }
+    fileWriter.write("}");
+    fileWriter.close();
+  }
 }
