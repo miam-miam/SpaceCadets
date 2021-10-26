@@ -1,8 +1,8 @@
 fn main() {
-    let mut X:i32;
-    let mut Y:i32;
-    let mut Z:i32;
-    let mut W:i32;
+    let mut W: i32;
+    let mut X: i32;
+    let mut Y: i32;
+    let mut Z: i32;
     X = 0;
     X += 1;
     X += 1;

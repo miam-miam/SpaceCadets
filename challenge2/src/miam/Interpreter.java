@@ -5,6 +5,7 @@ public class Interpreter {
   Command[] Instructions; // Using array as much faster to access than list
   Loop[] Loops;
 
+  /*
   public Interpreter(Parser parser) {
     Vars = new Integer[parser.Vars.size()];
     Instructions = parser.Instructions.toArray(new Command[0]);
@@ -36,5 +37,5 @@ public class Interpreter {
       }
     }
     System.out.println("Finished!");
-  }
+  } */
 }

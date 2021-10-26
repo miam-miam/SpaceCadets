@@ -7,31 +7,31 @@ public class Main {
   public static void main(String[] args) throws BareBonesException {
     Parser parser = new Parser(args[0]);
     try {
-      Transpiler.Pi(parser, "bareBones/main.py");
+      Transpiler.py(parser, "bareBones/main.py");
     } catch (IOException e) {
       throw new BareBonesException("Could not write formatted file.");
     }
     try {
-      Transpiler.Format(parser, "bareBones/format.bb");
+      Transpiler.format(parser, "bareBones/format.bb");
     } catch (IOException e) {
       throw new BareBonesException("Could not write formatted file.");
     }
     try {
-      Transpiler.Java(parser, "bareBones/Main.java");
+      Transpiler.java(parser, "bareBones/Main.java");
     } catch (IOException e) {
       throw new BareBonesException("Could not write formatted file.");
     }
     try {
-      Transpiler.Rust(parser, "bareBones/main.rs");
+      Transpiler.rust(parser, "bareBones/main.rs");
     } catch (IOException e) {
       throw new BareBonesException("Could not write formatted file.");
     }
     try {
-      Transpiler.CPP(parser, "bareBones/main.cpp");
+      Transpiler.cpp(parser, "bareBones/main.cpp");
     } catch (IOException e) {
       throw new BareBonesException("Could not write formatted file.");
     }
-    Interpreter interpreter = new Interpreter(parser);
-    interpreter.start();
+    //    Interpreter interpreter = new Interpreter(parser);
+    //    interpreter.start();
   }
 }

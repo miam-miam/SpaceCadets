@@ -1,10 +1,10 @@
 public class Main {
 
   public static void main(String[] args) {
+    Integer W;
     Integer X;
     Integer Y;
     Integer Z;
-    Integer W;
     X = 0;
     X += 1;
     X += 1;

@@ -1,8 +1,8 @@
 int main() {
+    int W;
     int X;
     int Y;
     int Z;
-    int W;
     X = 0;
     X += 1;
     X += 1;
