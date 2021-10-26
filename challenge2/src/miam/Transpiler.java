@@ -32,7 +32,7 @@ public class Transpiler {
     FileWriter fileWriter = new FileWriter(file);
     fileWriter.write("fn main() {\n");
     for (String var : parser.Variables.keySet()) {
-      fileWriter.write("    let mut " + var + ":i32;\n");
+      fileWriter.write("    let mut " + var + ": i32;\n");
     }
     parser.Group.rust(fileWriter, parser.Comments);
     fileWriter.write("}");

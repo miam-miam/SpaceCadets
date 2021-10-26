@@ -1,6 +1,7 @@
 package miam;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 public class Main {
 
@@ -31,7 +32,9 @@ public class Main {
     } catch (IOException e) {
       throw new BareBonesException("Could not write formatted file.");
     }
-    //    Interpreter interpreter = new Interpreter(parser);
-    //    interpreter.start();
+    Interpreter interpreter = new Interpreter(parser);
+    HashMap<Integer, Boolean> map = new HashMap<>();
+    map.put(1, true);
+    interpreter.start(map);
   }
 }

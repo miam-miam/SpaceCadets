@@ -2,9 +2,12 @@ package miam;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Scanner;
 
 abstract class Command {
   public int lineNumber;
@@ -26,6 +29,57 @@ abstract class Command {
     if (comments.get(lineNumber) != null) {
       fileWriter.write(" //" + comments.get(lineNumber));
     }
+  }
+
+  void run(HashMap<Integer, Boolean> breakpoints, Variable[] Variables) throws BareBonesException {
+    if (breakpoints.getOrDefault(lineNumber, false)) {
+      System.out.println(
+          "Broke at line "
+              + lineNumber
+              + ". Would you like to set a new breakpoint (b Number) or remove a breakpoint (r Number) or see a named variable (p Name) or even see all variables (p) or continue (c) or skip (s)?");
+      Scanner sc = new Scanner(System.in);
+      while (true) {
+        String choice = sc.nextLine();
+        if (choice.equals("p")) {
+          for (Variable variable : Variables) {
+            if (variable.data != null) {
+              System.out.println(variable.name + " is equal to: " + variable.data);
+            }
+          }
+        } else if (choice.startsWith("p") && choice.split("\\s")[1] != null) {
+          Optional<Variable> variable =
+              Arrays.stream(Variables)
+                  .filter(var -> var.name.equals(choice.split("\\s")[1]))
+                  .findFirst();
+          if (variable.isPresent()) {
+            if (variable.get().data == null) {
+              System.out.println(variable.get().name + " is currently uninitialised.");
+            } else {
+              System.out.println(variable.get().name + " is equal to: " + variable.get().data);
+            }
+          }
+        } else if (choice.startsWith("b") && choice.split("\\s")[1] != null) {
+          try {
+            int breakpoint = Integer.parseInt(choice.split("\\s")[1]);
+            breakpoints.put(breakpoint, true);
+            System.out.println("Set breakpoint!");
+          } catch (NumberFormatException ignored) {
+          }
+        } else if (choice.startsWith("r") && choice.split("\\s")[1] != null) {
+          try {
+            int breakpoint = Integer.parseInt(choice.split("\\s")[1]);
+            breakpoints.put(breakpoint, false);
+            System.out.println("Unset breakpoint!");
+          } catch (NumberFormatException ignored) {
+          }
+        } else if (choice.equals("c")) {
+          break;
+        } else if (choice.equals("s")) {
+          return;
+        }
+      }
+    }
+    run();
   }
 
   void py(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
@@ -68,8 +122,7 @@ class Incr extends Command {
   @Override
   void run() throws BareBonesException {
     variable.checkInitialise();
-    if (variable.data == Integer.MAX_VALUE) {
-
+    if (variable.data != Integer.MAX_VALUE) {
       variable.data = variable.data + 1;
     } else {
       throw new BareBonesException("Variable " + variable.name + " has overflowed!");
@@ -202,6 +255,13 @@ class Block extends Command {
   }
 
   @Override
+  void run(HashMap<Integer, Boolean> breakpoints, Variable[] Variables) throws BareBonesException {
+    for (Command command : commands) {
+      command.run(breakpoints, Variables);
+    }
+  }
+
+  @Override
   void format(FileWriter fileWriter) throws IOException {
     for (Command command : commands) {
       fileWriter.write("    ".repeat(depth));
@@ -309,6 +369,15 @@ class WhileBlock extends Block {
     while (variable.data != 0) {
       for (Command command : commands) {
         command.run();
+      }
+    }
+  }
+
+  @Override
+  void run(HashMap<Integer, Boolean> breakpoints, Variable[] Variables) throws BareBonesException {
+    while (variable.data != 0) {
+      for (Command command : commands) {
+        command.run(breakpoints, Variables);
       }
     }
   }
