@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 
+/**
+ * The Command class is used to store all commands that the parser has parsed. It also contains
+ * references to variables and as such recursively executes when called by the Interpreter.
+ */
 abstract class Command {
   public int lineNumber;
 

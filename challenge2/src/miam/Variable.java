@@ -1,6 +1,6 @@
 package miam;
 
-public class Variable {
+class Variable {
   public String name;
   public Integer data;
 

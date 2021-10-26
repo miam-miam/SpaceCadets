@@ -15,10 +15,15 @@ import java.util.regex.Pattern;
 // recursive patterns are inaccessible :(
 // (/\s*(?:(?:incr\s+(\w)\s*;)|(?:decr\s{1,}(\w)\s*;)|(?:clear\s+(\w)\s*;)|(?:while\s+(\w)\s+not\s+0\s+do\s*;(?R)*\s*(end)\s*;))/gA)
 
+/**
+ * The parser parses a BareBones source code into commands that can then be used by the transpiler
+ * or interpreter. A stack is used to separate code blocks into smaller chunks. This could then be
+ * used at a later date as a way of adding scoped variables.
+ */
 public class Parser {
   private static final Pattern PATTERN =
       Pattern.compile(
-          "(?:incr\\s+(\\w)|decr\\s+(\\w)|clear\\s+(\\w)|while\\s+(\\w)\\s+not\\s+0\\s+do|(end))\\s*;\\s*|\\s*//(.*)");
+          "(?:incr\\s+(\\w)|decr\\s+(\\w)|clear\\s+(\\w)|while\\s+(\\w)\\s+not\\s+0\\s+do|(end))\\s*;\\s*|\\s*//(.*)"); // Pattern to find the 6 different commands in a BareBones file (counting comments)
   private final Stack<Block> Groups = new Stack<>();
   public HashMap<String, Variable> Variables = new HashMap<>();
   public HashMap<Integer, String> Comments = new HashMap<>();

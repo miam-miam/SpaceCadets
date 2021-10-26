@@ -3,6 +3,11 @@ package miam;
 import java.io.FileWriter;
 import java.io.IOException;
 
+/**
+ * The Transpiler converts a parsed file into a .bb (bareBones file), .py, .java, .rs or .cpp. The
+ * transpiler cannot promise that the code produced will give the exact same output as the
+ * interpreter due to differences in how each language deals with stuff like overflows.
+ */
 public class Transpiler {
   public static void format(Parser parser, String file) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
