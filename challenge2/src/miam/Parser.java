@@ -25,7 +25,6 @@ public class Parser {
       Pattern.compile(
           "(?:incr\\s+(\\w)|decr\\s+(\\w)|clear\\s+(\\w)|while\\s+(\\w)\\s+not\\s+0\\s+do|(end))\\s*;\\s*|\\s*//(.*)"); // Pattern to find the 6 different commands in a BareBones file (counting comments)
   private final Stack<Block> Groups = new Stack<>();
-  public HashMap<String, Variable> Variables = new HashMap<>();
   public HashMap<Integer, String> Comments = new HashMap<>();
   public Block Group;
   private int lineNumber = 1;
@@ -73,31 +72,42 @@ public class Parser {
     }
   }
 
+  private Variable FindVariable(String term) {
+    for (int i = Groups.size() - 1; i >= 0; i--) {
+      Variable variable = Groups.get(i).variables.get(term);
+      if (variable != null) {
+        return variable;
+      }
+    }
+    return null;
+  }
+
   private void AddCommand(Matcher match) throws BareBonesException {
     String res;
     Variable var;
     if ((res = match.group(1)) != null) {
-      if ((var = Variables.get(res)) == null) {
+      if ((var = FindVariable(res)) == null) {
         throw new BareBonesException("Variable " + res + " is used before it is instantiated.");
       }
       Groups.lastElement().add(new Incr(var, lineNumber));
     } else if ((res = match.group(2)) != null) {
-      if ((var = Variables.get(res)) == null) {
+      if ((var = FindVariable(res)) == null) {
         throw new BareBonesException("Variable " + res + " is used before it is instantiated.");
       }
       Groups.lastElement().add(new Decr(var, lineNumber));
     } else if ((res = match.group(3)) != null) {
-      var = Variables.get(res);
+      var = FindVariable(res);
       if (var == null) {
         var = new Variable(res);
-        Variables.put(res, var);
+        Groups.lastElement().variables.put(res, var);
       }
       Groups.lastElement().add(new Clear(var, lineNumber));
     } else if ((res = match.group(4)) != null) {
-      if ((var = Variables.get(res)) == null) {
+      if ((var = FindVariable(res)) == null) {
         throw new BareBonesException("Variable " + res + " is used before it is instantiated.");
       }
-      Groups.push(new WhileBlock(var, lineNumber, Groups.lastElement().depth + 1));
+      Groups.push(
+          new WhileBlock(var, lineNumber, Groups.lastElement().depth + 1, Groups.lastElement()));
     } else if (match.group(5) != null) {
       try {
         Block group = Groups.pop();
