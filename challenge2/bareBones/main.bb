@@ -12,6 +12,7 @@ while X not 0 do;
       incr Z;
       incr W;
       decr Y;
+      clear T;
    end;
    while W not 0 do;
       incr Y;

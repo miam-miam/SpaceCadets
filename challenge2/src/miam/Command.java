@@ -2,7 +2,7 @@ package miam;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,7 +35,7 @@ abstract class Command {
     }
   }
 
-  void run(HashMap<Integer, Boolean> breakpoints, Variable[] Variables) throws BareBonesException {
+  void run(HashMap<Integer, Boolean> breakpoints, Block group) throws BareBonesException {
     if (breakpoints.getOrDefault(lineNumber, false)) {
       System.out.println(
           "Broke at line "
@@ -45,14 +45,14 @@ abstract class Command {
       while (true) {
         String choice = sc.nextLine();
         if (choice.equals("p")) {
-          for (Variable variable : Variables) {
+          for (Variable variable : group.GetAllVariables()) {
             if (variable.data != null) {
               System.out.println(variable.name + " is equal to: " + variable.data);
             }
           }
         } else if (choice.startsWith("p") && choice.split("\\s")[1] != null) {
           Optional<Variable> variable =
-              Arrays.stream(Variables)
+              group.GetAllVariables().stream()
                   .filter(var -> var.name.equals(choice.split("\\s")[1]))
                   .findFirst();
           if (variable.isPresent()) {
@@ -244,11 +244,16 @@ class Clear extends Command {
 
 class Block extends Command {
   public final List<Command> commands = new LinkedList<>();
+  public final HashMap<String, Variable> variables = new HashMap<>();
   public int depth;
 
   public Block(int LineNumber, int Depth) {
     lineNumber = LineNumber;
     depth = Depth;
+  }
+
+  public List<Variable> GetAllVariables() {
+    return new ArrayList<>(variables.values());
   }
 
   @Override
@@ -259,9 +264,9 @@ class Block extends Command {
   }
 
   @Override
-  void run(HashMap<Integer, Boolean> breakpoints, Variable[] Variables) throws BareBonesException {
+  void run(HashMap<Integer, Boolean> breakpoints, Block _group) throws BareBonesException {
     for (Command command : commands) {
-      command.run(breakpoints, Variables);
+      command.run(breakpoints, this);
     }
   }
 
@@ -362,10 +367,19 @@ class Block extends Command {
 
 class WhileBlock extends Block {
   public Variable variable;
+  public Block parent;
 
-  public WhileBlock(Variable Variable, int LineNumber, int Depth) {
+  public WhileBlock(Variable Variable, int LineNumber, int Depth, Block Parent) {
     super(LineNumber, Depth);
     variable = Variable;
+    parent = Parent;
+  }
+
+  @Override
+  public List<Variable> GetAllVariables() {
+    List<Variable> vars = new ArrayList<>(variables.values());
+    vars.addAll(parent.GetAllVariables());
+    return vars;
   }
 
   @Override
@@ -378,10 +392,10 @@ class WhileBlock extends Block {
   }
 
   @Override
-  void run(HashMap<Integer, Boolean> breakpoints, Variable[] Variables) throws BareBonesException {
+  void run(HashMap<Integer, Boolean> breakpoints, Block _group) throws BareBonesException {
     while (variable.data != 0) {
       for (Command command : commands) {
-        command.run(breakpoints, Variables);
+        command.run(breakpoints, this);
       }
     }
   }
