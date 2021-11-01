@@ -249,11 +249,13 @@ class Clear extends Command {
 class Func extends Command {
   Variable[] args;
   FuncBlock funcBlock;
+  boolean[] references;
 
-  public Func(Variable[] Args, FuncBlock FuncBlock, int LineNumber) {
+  public Func(Variable[] Args, FuncBlock FuncBlock, boolean[] References, int LineNumber) {
     funcBlock = FuncBlock;
     args = Args;
     lineNumber = LineNumber;
+    references = References;
   }
 
   @Override
@@ -267,11 +269,11 @@ class Func extends Command {
 
     funcBlock.run();
 
-    i = 0;
-    for (String arg : funcBlock.args) {
-      Variable arg_func = funcBlock.variables.get(arg);
-      args[i].data = arg_func.data;
-      i += 1;
+    for (int j = 0; j < args.length; j++) {
+      if (references[j]) {
+        Variable arg_func = funcBlock.variables.get(funcBlock.args[j]);
+        args[j].data = arg_func.data;
+      }
     }
   }
 
@@ -279,7 +281,7 @@ class Func extends Command {
   void run(HashMap<Integer, Boolean> breakpoints, Block group) throws BareBonesException {
     int i = 0;
     for (String arg : funcBlock.args) {
-      Variable arg_func = funcBlock.variables.get(arg);
+      Variable arg_func = funcBlock.variables.get(arg.replace("&", ""));
       arg_func.data = args[i].data;
       i += 1;
     }
@@ -288,11 +290,11 @@ class Func extends Command {
     funcBlock.debug(breakpoints, funcBlock);
     funcBlock.run(breakpoints, funcBlock);
 
-    i = 0;
-    for (String arg : funcBlock.args) {
-      Variable arg_func = funcBlock.variables.get(arg);
-      args[i].data = arg_func.data;
-      i += 1;
+    for (int j = 0; j < args.length; j++) {
+      if (references[j]) {
+        Variable arg_func = funcBlock.variables.get(funcBlock.args[j]);
+        args[j].data = arg_func.data;
+      }
     }
   }
 
