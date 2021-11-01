@@ -22,5 +22,7 @@ clear three1;
 incr three1;
 incr three1;
 incr three1;
-multiply(three0, three1, nine);
+clear test;
+multiply(three0, three0, &nine);
+incr test;
 incr test;

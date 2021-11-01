@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 public class Parser {
   private static final Pattern PATTERN =
       Pattern.compile(
-          "\\s*(?:incr\\s+(\\w+)|decr\\s+(\\w+)|clear\\s+(\\w+)|while\\s+(\\w+)\\s+not\\s+0\\s+do|(end)|func\\s+(\\w+)\\s*\\((\\s*\\w+\\s*(?:,\\s*\\w+\\s*)*)\\)|(\\w+)\\s*\\((\\s*\\w+\\s*(?:,\\s*\\w+\\s*)*)\\))\\s*;\\s*|\\s*//[ \\t]*+(.+)?[ \\t]*\\n\\s*"); // Pattern to find the 8 different commands in a BareBones file (counting comments)
+          "\\s*(?:incr\\s+(\\w+)|decr\\s+(\\w+)|clear\\s+(\\w+)|while\\s+(\\w+)\\s+not\\s+0\\s+do|(end)|func\\s+(\\w+)\\s*\\((\\s*\\w+\\s*(?:,\\s*\\w+\\s*)*)\\)|(\\w+)\\s*\\((\\s*[&]?\\w+\\s*(?:,\\s*[&]?\\w+\\s*)*)\\))\\s*;\\s*|\\s*//[ \\t]*+(.+)?[ \\t]*\\n\\s*"); // Pattern to find the 8 different commands in a BareBones file (counting comments)
   private final Stack<Block> Groups = new Stack<>();
   public HashMap<Integer, String> Comments = new HashMap<>();
   public HashMap<String, FuncBlock> Functions = new HashMap<>();
@@ -44,13 +44,14 @@ public class Parser {
         try {
           if (!line.equals("")) {
             Matcher matcher = PATTERN.matcher(line);
-            if (!matcher.find(0)) {
+            if (!matcher.find(0) || matcher.start() != 0) {
               throw new BareBonesException("Unexpected token.");
             }
             AddCommand(matcher);
             while (!matcher.hitEnd()) {
               // More than one command on a single line.
-              if (!matcher.find(matcher.end())) {
+              int end = matcher.end();
+              if (!matcher.find(matcher.end()) || matcher.start() != end) {
                 throw new BareBonesException("Unexpected token.");
               }
               AddCommand(matcher);
@@ -139,15 +140,23 @@ public class Parser {
       } else if (func.args.length != args.length) {
         throw new BareBonesException("Function has incorrect argument count.");
       } else {
+        boolean[] references = new boolean[args.length];
         Variable[] vars = new Variable[args.length];
         for (int i = 0; i < args.length; i++) {
-          if ((var = FindVariable(args[i])) == null) {
+          String sanitisedArg;
+          if (args[i].startsWith("&")) {
+            sanitisedArg = args[i].substring(1);
+            references[i] = true;
+          } else {
+            sanitisedArg = args[i];
+          }
+          if ((var = FindVariable(sanitisedArg)) == null) {
             throw new BareBonesException(
-                "Variable " + args[i] + " is used before it is instantiated.");
+                "Variable " + sanitisedArg + " is used before it is instantiated.");
           }
           vars[i] = var;
         }
-        Groups.lastElement().add(new Func(vars, func, lineNumber));
+        Groups.lastElement().add(new Func(vars, func, references, lineNumber));
       }
     } else if (match.group(10) != null) {
       // This is where comments are matched.
