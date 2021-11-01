@@ -1,4 +1,3 @@
-clear test;
 func multiply(X, Y, Total);
     while X not 0 do;
         clear W;

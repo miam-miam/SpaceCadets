@@ -36,6 +36,11 @@ abstract class Command {
   }
 
   void run(HashMap<Integer, Boolean> breakpoints, Block group) throws BareBonesException {
+    debug(breakpoints, group);
+    run();
+  }
+
+  void debug(HashMap<Integer, Boolean> breakpoints, Block group) {
     if (breakpoints.getOrDefault(lineNumber, false)) {
       System.out.println(
           "Broke at line "
@@ -83,7 +88,6 @@ abstract class Command {
         }
       }
     }
-    run();
   }
 
   void py(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
@@ -262,6 +266,27 @@ class Func extends Command {
     }
 
     funcBlock.run();
+
+    i = 0;
+    for (String arg : funcBlock.args) {
+      Variable arg_func = funcBlock.variables.get(arg);
+      args[i].data = arg_func.data;
+      i += 1;
+    }
+  }
+
+  @Override
+  void run(HashMap<Integer, Boolean> breakpoints, Block group) throws BareBonesException {
+    int i = 0;
+    for (String arg : funcBlock.args) {
+      Variable arg_func = funcBlock.variables.get(arg);
+      arg_func.data = args[i].data;
+      i += 1;
+    }
+
+    debug(breakpoints, group);
+    funcBlock.debug(breakpoints, funcBlock);
+    funcBlock.run(breakpoints, funcBlock);
 
     i = 0;
     for (String arg : funcBlock.args) {
@@ -487,6 +512,7 @@ class WhileBlock extends Block {
   @Override
   void run(HashMap<Integer, Boolean> breakpoints, Block _group) throws BareBonesException {
     while (variable.data != 0) {
+      debug(breakpoints, this);
       for (Command command : commands) {
         command.run(breakpoints, this);
       }
