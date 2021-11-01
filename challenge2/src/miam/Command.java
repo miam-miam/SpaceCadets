@@ -242,6 +242,60 @@ class Clear extends Command {
   }
 }
 
+class Func extends Command {
+  Variable[] args;
+  FuncBlock funcBlock;
+
+  public Func(Variable[] Args, FuncBlock FuncBlock, int LineNumber) {
+    funcBlock = FuncBlock;
+    args = Args;
+    lineNumber = LineNumber;
+  }
+
+  @Override
+  void run() throws BareBonesException {
+    int i = 0;
+    for (String arg : funcBlock.args) {
+      Variable arg_func = funcBlock.variables.get(arg);
+      arg_func.data = args[i].data;
+      i += 1;
+    }
+
+    funcBlock.run();
+
+    i = 0;
+    for (String arg : funcBlock.args) {
+      Variable arg_func = funcBlock.variables.get(arg);
+      args[i].data = arg_func.data;
+      i += 1;
+    }
+  }
+
+  @Override
+  void format(FileWriter fileWriter) throws IOException {
+    fileWriter.write(funcBlock.name + "(");
+    for (int i = 0; i < args.length; i++) {
+      if (i != 0) {
+        fileWriter.write(", ");
+      }
+      fileWriter.write(args[i].name);
+    }
+    fileWriter.write(");");
+  }
+
+  @Override
+  void py(FileWriter fileWriter) throws IOException {}
+
+  @Override
+  void java(FileWriter fileWriter) throws IOException {}
+
+  @Override
+  void rust(FileWriter fileWriter) throws IOException {}
+
+  @Override
+  void cpp(FileWriter fileWriter) throws IOException {}
+}
+
 class Block extends Command {
   public final List<Command> commands = new LinkedList<>();
   public final HashMap<String, Variable> variables = new HashMap<>();
@@ -365,6 +419,45 @@ class Block extends Command {
   }
 }
 
+class FuncBlock extends Block {
+  // Remember to reset vars
+  public String[] args;
+  public String name;
+
+  public FuncBlock(String[] Args, int lineNumber, String Name) {
+    super(lineNumber, 1);
+    args = Args;
+    name = Name;
+    for (String arg : args) {
+      variables.put(arg, new Variable(arg));
+    }
+  }
+
+  @Override
+  void format(FileWriter fileWriter) throws IOException {
+    fileWriter.write("func " + name + "(" + String.join(", ", args) + ");\n");
+    super.format(fileWriter);
+    fileWriter.write("end;");
+  }
+
+  @Override
+  void format(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
+    fileWriter.write("func " + name + "(" + String.join(", ", args) + ");");
+    if (comments.get(lineNumber) != null) {
+      fileWriter.write(" //" + comments.get(lineNumber) + "\n");
+    } else {
+      fileWriter.write("\n");
+    }
+    super.format(fileWriter, comments);
+    fileWriter.write("end;");
+    if (comments.get(lineNumber) != null) {
+      fileWriter.write(" //" + comments.get(lineNumber) + "\n");
+    } else {
+      fileWriter.write("\n");
+    }
+  }
+}
+
 class WhileBlock extends Block {
   public Variable variable;
   public Block parent;
@@ -403,11 +496,7 @@ class WhileBlock extends Block {
   @Override
   void format(FileWriter fileWriter) throws IOException {
     fileWriter.write("while " + variable.name + " not 0 do;\n");
-    for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth));
-      command.format(fileWriter);
-      fileWriter.write("\n");
-    }
+    super.format(fileWriter);
     fileWriter.write("    ".repeat(depth - 1));
     fileWriter.write("end;");
   }
@@ -420,11 +509,7 @@ class WhileBlock extends Block {
     } else {
       fileWriter.write("\n");
     }
-    for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth));
-      command.format(fileWriter, comments);
-      fileWriter.write("\n");
-    }
+    super.format(fileWriter, comments);
     fileWriter.write("    ".repeat(depth - 1));
     fileWriter.write("end;");
     int endLineNum = commands.get(commands.size() - 1).lineNumber + 1;
