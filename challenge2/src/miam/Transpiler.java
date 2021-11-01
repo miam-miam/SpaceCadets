@@ -11,6 +11,9 @@ import java.io.IOException;
 public class Transpiler {
   public static void format(Parser parser, String file) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
+    for (FuncBlock f : parser.Functions.values()) {
+      f.format(fileWriter, parser.Comments);
+    }
     parser.Group.format(fileWriter, parser.Comments);
     fileWriter.close();
   }

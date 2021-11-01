@@ -23,9 +23,10 @@ import java.util.regex.Pattern;
 public class Parser {
   private static final Pattern PATTERN =
       Pattern.compile(
-          "(?:incr\\s+(\\w)|decr\\s+(\\w)|clear\\s+(\\w)|while\\s+(\\w)\\s+not\\s+0\\s+do|(end))\\s*;\\s*|\\s*//(.*)"); // Pattern to find the 6 different commands in a BareBones file (counting comments)
+          "\\s*(?:incr\\s+(\\w+)|decr\\s+(\\w+)|clear\\s+(\\w+)|while\\s+(\\w+)\\s+not\\s+0\\s+do|(end)|func\\s+(\\w+)\\s*\\((\\s*\\w+\\s*(?:,\\s*\\w+\\s*)*)\\)|(\\w+)\\s*\\((\\s*\\w+\\s*(?:,\\s*\\w+\\s*)*)\\))\\s*;\\s*|\\s*//[ \\t]*+(.+)?[ \\t]*\\n\\s*"); // Pattern to find the 8 different commands in a BareBones file (counting comments)
   private final Stack<Block> Groups = new Stack<>();
   public HashMap<Integer, String> Comments = new HashMap<>();
+  public HashMap<String, FuncBlock> Functions = new HashMap<>();
   public Block Group;
   private int lineNumber = 1;
 
@@ -41,20 +42,21 @@ public class Parser {
       Groups.push(new Block(lineNumber, 0));
       while ((line = bufferedReader.readLine()) != null) {
         try {
-          Matcher matcher = PATTERN.matcher(line);
-          if (!matcher.find(0)) {
-            throw new BareBonesException("Unexpected token.");
-          }
-          AddCommand(matcher);
-          lineNumber += 1;
-          while (!matcher.hitEnd()) {
-            // More than one command on a single line.
-            if (!matcher.find(matcher.end())) {
+          if (!line.equals("")) {
+            Matcher matcher = PATTERN.matcher(line);
+            if (!matcher.find(0)) {
               throw new BareBonesException("Unexpected token.");
             }
             AddCommand(matcher);
-            lineNumber += 1;
+            while (!matcher.hitEnd()) {
+              // More than one command on a single line.
+              if (!matcher.find(matcher.end())) {
+                throw new BareBonesException("Unexpected token.");
+              }
+              AddCommand(matcher);
+            }
           }
+          lineNumber += 1;
         } catch (BareBonesException e) {
           fileReader.close(); // Need to make sure to close the file as throw returns from func
           throw new BareBonesException(e.getMessage() + " On this line: " + line);
@@ -113,18 +115,44 @@ public class Parser {
         Block group = Groups.pop();
         if (group instanceof WhileBlock) {
           Groups.lastElement().add(group);
-        } else {
+        } else if (!(group instanceof FuncBlock)) {
           throw new BareBonesException("Unexpected \"end;\".");
         }
       } catch (EmptyStackException e) {
         throw new BareBonesException("Unexpected \"end;\".");
       }
-    } else if (match.group(6) != null) {
+    } else if (match.group(6) != null && match.group(7) != null) {
+      String func_name = match.group(6);
+      String[] args = match.group(7).split("\\s*,\\s*");
+      if (Groups.lastElement() instanceof WhileBlock | Groups.lastElement() instanceof FuncBlock) {
+        throw new BareBonesException("Functions cannot be defined in a non-global scope.");
+      }
+      FuncBlock func = new FuncBlock(args, lineNumber, func_name);
+      Functions.put(func_name, func);
+      Groups.push(func);
+    } else if (match.group(8) != null && match.group(9) != null) {
+      String func_name = match.group(8);
+      String[] args = match.group(9).split("\\s*,\\s*");
+      FuncBlock func = Functions.get(func_name);
+      if (func == null) {
+        throw new BareBonesException("Could not find function.");
+      } else if (func.args.length != args.length) {
+        throw new BareBonesException("Function has incorrect argument count.");
+      } else {
+        Variable[] vars = new Variable[args.length];
+        for (int i = 0; i < args.length; i++) {
+          if ((var = FindVariable(args[i])) == null) {
+            throw new BareBonesException(
+                "Variable " + args[i] + " is used before it is instantiated.");
+          }
+          vars[i] = var;
+        }
+        Groups.lastElement().add(new Func(vars, func, lineNumber));
+      }
+    } else if (match.group(10) != null) {
       // This is where comments are matched.
       lineNumber -= 1;
-      if (!match.group(6).trim().equals("")) {
-        Comments.merge(lineNumber, match.group(6), String::concat);
-      }
+      Comments.merge(lineNumber, match.group(10), String::concat);
     }
   }
 }
