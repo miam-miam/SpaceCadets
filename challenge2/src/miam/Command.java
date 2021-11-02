@@ -19,18 +19,7 @@ abstract class Command {
 
   abstract void run() throws BareBonesException;
 
-  abstract void format(FileWriter fileWriter) throws IOException;
-
-  abstract void py(FileWriter fileWriter) throws IOException;
-
-  abstract void java(FileWriter fileWriter) throws IOException;
-
-  abstract void rust(FileWriter fileWriter) throws IOException;
-
-  abstract void cpp(FileWriter fileWriter) throws IOException;
-
-  void format(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
-    format(fileWriter);
+  void comment(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     if (comments.get(lineNumber) != null) {
       fileWriter.write(" //" + comments.get(lineNumber));
     }
@@ -91,33 +80,15 @@ abstract class Command {
     }
   }
 
-  void py(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
-    py(fileWriter);
-    if (comments.get(lineNumber) != null) {
-      fileWriter.write("  #" + comments.get(lineNumber));
-    }
-  }
+  abstract void java(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException;
 
-  void java(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
-    java(fileWriter);
-    if (comments.get(lineNumber) != null) {
-      fileWriter.write(" //" + comments.get(lineNumber));
-    }
-  }
+  abstract void rust(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException;
 
-  void rust(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
-    rust(fileWriter);
-    if (comments.get(lineNumber) != null) {
-      fileWriter.write(" //" + comments.get(lineNumber));
-    }
-  }
+  abstract void cpp(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException;
 
-  void cpp(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
-    cpp(fileWriter);
-    if (comments.get(lineNumber) != null) {
-      fileWriter.write(" //" + comments.get(lineNumber));
-    }
-  }
+  abstract void format(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException;
+
+  abstract void py(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException;
 }
 
 class Incr extends Command {
@@ -139,28 +110,33 @@ class Incr extends Command {
   }
 
   @Override
-  void format(FileWriter fileWriter) throws IOException {
+  void format(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write("incr " + variable.name + ";");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void py(FileWriter fileWriter) throws IOException {
+  void py(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " += 1");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void java(FileWriter fileWriter) throws IOException {
+  void java(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " += 1;");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void rust(FileWriter fileWriter) throws IOException {
+  void rust(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " += 1;");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void cpp(FileWriter fileWriter) throws IOException {
+  void cpp(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " += 1;");
+    comment(fileWriter, comments);
   }
 }
 
@@ -183,28 +159,33 @@ class Decr extends Command {
   }
 
   @Override
-  void format(FileWriter fileWriter) throws IOException {
+  void format(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write("decr " + variable.name + ";");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void py(FileWriter fileWriter) throws IOException {
+  void py(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " -= 1");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void java(FileWriter fileWriter) throws IOException {
+  void java(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " -= 1;");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void rust(FileWriter fileWriter) throws IOException {
+  void rust(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " -= 1;");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void cpp(FileWriter fileWriter) throws IOException {
+  void cpp(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " -= 1;");
+    comment(fileWriter, comments);
   }
 }
 
@@ -222,28 +203,33 @@ class Clear extends Command {
   }
 
   @Override
-  void format(FileWriter fileWriter) throws IOException {
+  void format(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write("clear " + variable.name + ";");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void py(FileWriter fileWriter) throws IOException {
+  void py(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " = 0");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void java(FileWriter fileWriter) throws IOException {
+  void java(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " = 0;");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void rust(FileWriter fileWriter) throws IOException {
+  void rust(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " = 0;");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void cpp(FileWriter fileWriter) throws IOException {
+  void cpp(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(variable.name + " = 0;");
+    comment(fileWriter, comments);
   }
 }
 
@@ -300,7 +286,7 @@ class Func extends Command {
   }
 
   @Override
-  void format(FileWriter fileWriter) throws IOException {
+  void format(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write(funcBlock.name + "(");
     for (int i = 0; i < args.length; i++) {
       if (i != 0) {
@@ -309,16 +295,20 @@ class Func extends Command {
       fileWriter.write(args[i].name);
     }
     fileWriter.write(");");
+    comment(fileWriter, comments);
   }
 
   @Override
-  void py(FileWriter fileWriter) throws IOException {}
+  void py(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {}
 
   @Override
-  void java(FileWriter fileWriter) throws IOException {}
+  void java(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {}
 
   @Override
-  void rust(FileWriter fileWriter) throws IOException {
+  void cpp(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {}
+
+  @Override
+  void rust(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write("let (");
     boolean firstInstance = true;
     for (int i = 0; i < references.length; i++) {
@@ -344,10 +334,8 @@ class Func extends Command {
       fileWriter.write(", " + args[j].name);
     }
     fileWriter.write(");");
+    comment(fileWriter, comments);
   }
-
-  @Override
-  void cpp(FileWriter fileWriter) throws IOException {}
 }
 
 class Block extends Command {
@@ -379,21 +367,6 @@ class Block extends Command {
   }
 
   @Override
-  void format(FileWriter fileWriter) throws IOException {
-    for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth - 1));
-      if (command instanceof WhileBlock) {
-        ((WhileBlock) command).depth -= 1;
-      }
-      command.format(fileWriter);
-      if (command instanceof WhileBlock) {
-        ((WhileBlock) command).depth += 1;
-      }
-      fileWriter.write("\n");
-    }
-  }
-
-  @Override
   void format(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     for (Command command : commands) {
       fileWriter.write("    ".repeat(depth - 1));
@@ -409,28 +382,10 @@ class Block extends Command {
   }
 
   @Override
-  void py(FileWriter fileWriter) throws IOException {
-    for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth));
-      command.py(fileWriter);
-      fileWriter.write("\n");
-    }
-  }
-
-  @Override
   void py(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     for (Command command : commands) {
       fileWriter.write("    ".repeat(depth));
       command.py(fileWriter, comments);
-      fileWriter.write("\n");
-    }
-  }
-
-  @Override
-  void java(FileWriter fileWriter) throws IOException {
-    for (Command command : commands) {
-      fileWriter.write("  ".repeat(depth + 2));
-      command.java(fileWriter);
       fileWriter.write("\n");
     }
   }
@@ -445,18 +400,6 @@ class Block extends Command {
   }
 
   @Override
-  void rust(FileWriter fileWriter) throws IOException {
-    for (String var : variables.keySet()) {
-      fileWriter.write("    ".repeat(depth) + "let mut " + var + ": i32;\n");
-    }
-    for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth));
-      command.rust(fileWriter);
-      fileWriter.write("\n");
-    }
-  }
-
-  @Override
   void rust(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     for (String var : variables.keySet()) {
       fileWriter.write("    ".repeat(depth) + "let mut " + var + ": i32;\n");
@@ -464,15 +407,6 @@ class Block extends Command {
     for (Command command : commands) {
       fileWriter.write("    ".repeat(depth));
       command.rust(fileWriter, comments);
-      fileWriter.write("\n");
-    }
-  }
-
-  @Override
-  void cpp(FileWriter fileWriter) throws IOException {
-    for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth + 1));
-      command.cpp(fileWriter);
       fileWriter.write("\n");
     }
   }
@@ -506,17 +440,6 @@ class FuncBlock extends Block {
   }
 
   @Override
-  void format(FileWriter fileWriter) throws IOException {
-    fileWriter.write("func " + name + "(" + String.join(", ", args) + ");\n");
-    for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth));
-      command.format(fileWriter);
-      fileWriter.write("\n");
-    }
-    fileWriter.write("end;");
-  }
-
-  @Override
   void format(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write("func " + name + "(" + String.join(", ", args) + ");");
     if (comments.get(lineNumber) != null) {
@@ -538,8 +461,7 @@ class FuncBlock extends Block {
   }
 
   @Override
-  void rust(FileWriter fileWriter) throws IOException {
-
+  void rust(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     StringBuilder returnTypes = new StringBuilder("(i32");
     fileWriter.write("fn " + name + "(mut " + args[0] + ": i32");
     for (int j = 1; j < args.length; j++) {
@@ -556,7 +478,7 @@ class FuncBlock extends Block {
     }
     for (Command command : commands) {
       fileWriter.write("    ".repeat(depth));
-      command.rust(fileWriter);
+      command.rust(fileWriter, comments);
       fileWriter.write("\n");
     }
 
@@ -610,16 +532,6 @@ class WhileBlock extends Block {
   }
 
   @Override
-  void format(FileWriter fileWriter) throws IOException {
-    fileWriter.write("while " + variable.name + " not 0 do;\n");
-    for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth));
-      fileWriter.write("\n");
-    }
-    fileWriter.write("    ".repeat(depth - 1) + "end;");
-  }
-
-  @Override
   void format(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write("while " + variable.name + " not 0 do;");
     if (comments.get(lineNumber) != null) {
@@ -636,20 +548,6 @@ class WhileBlock extends Block {
     int endLineNum = commands.get(commands.size() - 1).lineNumber + 1;
     if (comments.get(endLineNum) != null) {
       fileWriter.write(" //" + comments.get(endLineNum));
-    }
-  }
-
-  @Override
-  void py(FileWriter fileWriter) throws IOException {
-    fileWriter.write("while " + variable.name + " != 0:\n");
-    int i = 0;
-    for (Command command : commands) {
-      i += 1;
-      fileWriter.write("    ".repeat(depth));
-      command.py(fileWriter);
-      if (i != commands.size()) {
-        fileWriter.write("\n");
-      }
     }
   }
 
@@ -677,17 +575,6 @@ class WhileBlock extends Block {
   }
 
   @Override
-  void java(FileWriter fileWriter) throws IOException {
-    fileWriter.write("while (" + variable.name + " != 0) {\n");
-    for (Command command : commands) {
-      fileWriter.write("  ".repeat(depth + 2));
-      command.java(fileWriter);
-      fileWriter.write("\n");
-    }
-    fileWriter.write("  ".repeat(depth + 1) + "}");
-  }
-
-  @Override
   void java(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write("while (" + variable.name + " != 0) {");
     if (comments.get(lineNumber) != null) {
@@ -708,24 +595,10 @@ class WhileBlock extends Block {
   }
 
   @Override
-  void rust(FileWriter fileWriter) throws IOException {
-    fileWriter.write("while " + variable.name + " != 0 {\n");
-    for (String var : variables.keySet()) {
-      fileWriter.write("    ".repeat(depth) + "let mut " + var + ": i32;\n");
-    }
-    for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth));
-      command.rust(fileWriter);
-      fileWriter.write("\n");
-    }
-    fileWriter.write("    ".repeat(depth - 1) + "}");
-  }
-
-  @Override
   void rust(FileWriter fileWriter, HashMap<Integer, String> comments) throws IOException {
     fileWriter.write("while " + variable.name + " != 0 {");
     for (String var : variables.keySet()) {
-      fileWriter.write("    ".repeat(depth) + "let mut " + var + ": i32;\n");
+      fileWriter.write("\n" + "    ".repeat(depth) + "let mut " + var + ": i32;");
     }
     if (comments.get(lineNumber) != null) {
       fileWriter.write(" //" + comments.get(lineNumber) + "\n");
@@ -733,26 +606,15 @@ class WhileBlock extends Block {
       fileWriter.write("\n");
     }
     for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth + 1));
+      fileWriter.write("    ".repeat(depth));
       command.rust(fileWriter, comments);
       fileWriter.write("\n");
     }
     int endLineNum = commands.get(commands.size() - 1).lineNumber + 1;
-    fileWriter.write("    ".repeat(depth) + "}");
+    fileWriter.write("    ".repeat(depth - 1) + "}");
     if (comments.get(endLineNum) != null) {
       fileWriter.write(" //" + comments.get(endLineNum));
     }
-  }
-
-  @Override
-  void cpp(FileWriter fileWriter) throws IOException {
-    fileWriter.write("while (" + variable.name + " != 0) {\n");
-    for (Command command : commands) {
-      fileWriter.write("    ".repeat(depth + 1));
-      command.cpp(fileWriter);
-      fileWriter.write("\n");
-    }
-    fileWriter.write("    ".repeat(depth) + "}");
   }
 
   @Override
