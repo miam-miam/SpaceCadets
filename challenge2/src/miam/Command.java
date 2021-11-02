@@ -497,7 +497,7 @@ class FuncBlock extends Block {
       command.format(fileWriter, comments);
       fileWriter.write("\n");
     }
-    fileWriter.write("end;");
+    fileWriter.write("end;\n");
   }
 
   @Override
