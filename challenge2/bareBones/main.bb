@@ -1,4 +1,4 @@
-func multiply(X, Y, Total);
+func multiply(X, Y, Total); // tsd
     while X not 0 do; //d
         clear W; //ds
         while Y not 0 do;
@@ -18,10 +18,12 @@ clear three0;
 incr three0;
 incr three0;
 incr three0;
-clear three1;//l
-while  three0 not 0 do;
-            decr three0;
-        end;
+clear three1; // l
+while three0 not 0 do;
+    while three0 not 0 do;
+        decr three0;
+    end;
+end;
 incr three1;
 incr three1;
 incr three1;

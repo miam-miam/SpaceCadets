@@ -33,24 +33,18 @@ public class Main {
         } catch (IOException e) {
           throw new BareBonesException("Could not write formatted file.");
         }
+      } else if (args[1].endsWith(".cpp")) {
+        try {
+          Transpiler.cpp(parser, args[1]);
+        } catch (IOException e) {
+          throw new BareBonesException("Could not write formatted file.");
+        }
+      } else {
+        Interpreter interpreter = new Interpreter(parser);
+        HashMap<Integer, Boolean> map = new HashMap<>();
+        map.put(1, true);
+        interpreter.start(map);
       }
-      //      } else if (args[1].endsWith(".java")) {
-      //        try {
-      //          Transpiler.java(parser, args[1]);
-      //        } catch (IOException e) {
-      //          throw new BareBonesException("Could not write formatted file.");
-      //        }
-      //      } else if (args[1].endsWith(".cpp")) {
-      //        try {
-      //          Transpiler.cpp(parser, args[1]);
-      //        } catch (IOException e) {
-      //          throw new BareBonesException("Could not write formatted file.");
-      //        }
-    } else {
-      Interpreter interpreter = new Interpreter(parser);
-      HashMap<Integer, Boolean> map = new HashMap<>();
-      map.put(1, true);
-      interpreter.start(map);
     }
   }
 }
