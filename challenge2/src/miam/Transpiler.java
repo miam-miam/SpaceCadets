@@ -39,18 +39,10 @@ public class Transpiler {
   public static void rust(Parser parser, String file) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
     for (FuncBlock funcs : parser.Functions.values()) {
-      if (parser.Comments.isEmpty()) {
-        funcs.rust(fileWriter);
-      } else {
-        funcs.rust(fileWriter, parser.Comments);
-      }
+      funcs.rust(fileWriter, parser.Comments);
     }
     fileWriter.write("fn main() {\n");
-    if (parser.Comments.isEmpty()) {
-      parser.Group.rust(fileWriter);
-    } else {
-      parser.Group.rust(fileWriter, parser.Comments);
-    }
+    parser.Group.rust(fileWriter, parser.Comments);
     fileWriter.write("}");
     fileWriter.close();
   }

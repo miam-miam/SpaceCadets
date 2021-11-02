@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 public class Parser {
   private static final Pattern PATTERN =
       Pattern.compile(
-          "\\s*(?:incr\\s+(\\w+)|decr\\s+(\\w+)|clear\\s+(\\w+)|while\\s+(\\w+)\\s+not\\s+0\\s+do|(end)|func\\s+(\\w+)\\s*\\((\\s*\\w+\\s*(?:,\\s*\\w+\\s*)*)\\)|(\\w+)\\s*\\((\\s*[&]?\\w+\\s*(?:,\\s*[&]?\\w+\\s*)*)\\))\\s*;\\s*|\\s*//[ \\t]*+(.+)?[ \\t]*\\n\\s*"); // Pattern to find the 8 different commands in a BareBones file (counting comments)
+          "\\s*(?:incr\\s+(\\w+)|decr\\s+(\\w+)|clear\\s+(\\w+)|while\\s+(\\w+)\\s+not\\s+0\\s+do|(end)|func\\s+(\\w+)\\s*\\((\\s*\\w+\\s*(?:,\\s*\\w+\\s*)*)\\)|(\\w+)\\s*\\((\\s*[&]?\\w+\\s*(?:,\\s*[&]?\\w+\\s*)*)\\))\\s*;\\s*|\\s*//[ \\t]*+(.+)?[ \\t]*\\s*"); // Pattern to find the 8 different commands in a BareBones file (counting comments)
   private final Stack<Block> Groups = new Stack<>();
   public HashMap<Integer, String> Comments = new HashMap<>();
   public HashMap<String, FuncBlock> Functions = new HashMap<>();
@@ -160,7 +160,7 @@ public class Parser {
       }
     } else if (match.group(10) != null) {
       // This is where comments are matched.
-      lineNumber -= 1;
+      //      lineNumber -= 1;
       Comments.merge(lineNumber, match.group(10), String::concat);
     }
   }
