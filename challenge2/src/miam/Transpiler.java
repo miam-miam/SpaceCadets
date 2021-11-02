@@ -20,22 +20,13 @@ public class Transpiler {
 
   public static void py(Parser parser, String file) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
+    for (FuncBlock f : parser.Functions.values()) {
+      f.py(fileWriter, parser.Comments);
+    }
     parser.Group.py(fileWriter, parser.Comments);
     fileWriter.close();
   }
 
-  //  public static void java(Parser parser, String file) throws IOException {
-  //    FileWriter fileWriter = new FileWriter(file);
-  //    fileWriter.write(
-  //        "public class Main {\n" + "\n" + "  public static void main(String[] args) {\n");
-  //    for (String var : parser.Variables.keySet()) {
-  //      fileWriter.write("    Integer " + var + ";\n");
-  //    }
-  //    parser.Group.java(fileWriter, parser.Comments);
-  //    fileWriter.write("  }\n" + "}");
-  //    fileWriter.close();
-  //  }
-  //
   public static void rust(Parser parser, String file) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
     for (FuncBlock funcs : parser.Functions.values()) {
@@ -46,15 +37,15 @@ public class Transpiler {
     fileWriter.write("}");
     fileWriter.close();
   }
-  //
-  //  public static void cpp(Parser parser, String file) throws IOException {
-  //    FileWriter fileWriter = new FileWriter(file);
-  //    fileWriter.write("int main() {\n");
-  //    for (String var : parser.Variables.keySet()) {
-  //      fileWriter.write("    int " + var + ";\n");
-  //    }
-  //    parser.Group.cpp(fileWriter, parser.Comments);
-  //    fileWriter.write("}");
-  //    fileWriter.close();
-  //  }
+
+  public static void cpp(Parser parser, String file) throws IOException {
+    FileWriter fileWriter = new FileWriter(file);
+    for (FuncBlock funcs : parser.Functions.values()) {
+      funcs.cpp(fileWriter, parser.Comments);
+    }
+    fileWriter.write("int main() {\n");
+    parser.Group.cpp(fileWriter, parser.Comments);
+    fileWriter.write("}");
+    fileWriter.close();
+  }
 }

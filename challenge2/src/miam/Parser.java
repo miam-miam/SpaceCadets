@@ -109,8 +109,7 @@ public class Parser {
       if ((var = FindVariable(res)) == null) {
         throw new BareBonesException("Variable " + res + " is used before it is instantiated.");
       }
-      Groups.push(
-          new WhileBlock(var, lineNumber, Groups.lastElement().depth + 1, Groups.lastElement()));
+      Groups.push(new WhileBlock(var, lineNumber, Groups.lastElement()));
     } else if (match.group(5) != null) {
       try {
         Block group = Groups.pop();

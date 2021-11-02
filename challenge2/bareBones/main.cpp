@@ -1,21 +1,10 @@
-int main() {
-    int W;
-    int X;
-    int Y;
-    int Z;
-    X = 0;
-    X += 1;
-    X += 1;
-    Y = 0;
-    Y += 1;
-    Y += 1;
-    Y += 1;
-    Z = 0;
-    while (X != 0) {
-        W = 0;
+void multiply( int& X, int& Y, int& Total) { // tsd
+    while (X != 0) { // d
+        int W;
+        W = 0; // ds
         while (Y != 0) {
-            Z += 1;
-            W += 1;
+            Total += 1;
+            W += 1; // sdfaa
             Y -= 1;
         }
         while (W != 0) {
@@ -24,4 +13,29 @@ int main() {
         }
         X -= 1;
     }
+}
+
+int main() {
+    int nine;
+    int three1;
+    int three0;
+    int test;
+    nine = 0;
+    three0 = 0;
+    three0 += 1;
+    three0 += 1;
+    three0 += 1;
+    three1 = 0; // l
+    while (three0 != 0) {
+        while (three0 != 0) {
+            three0 -= 1;
+        }
+    }
+    three1 += 1;
+    three1 += 1;
+    three1 += 1;
+    test = 0;
+    int $three0 = three0;int $$three0 = three0;multiply($three0, $$three0, nine); // op
+    test += 1;
+    test += 1;
 }
