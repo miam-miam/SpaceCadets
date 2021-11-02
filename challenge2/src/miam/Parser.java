@@ -39,7 +39,7 @@ public class Parser {
       FileReader fileReader = new FileReader(code);
       BufferedReader bufferedReader = new BufferedReader(fileReader);
       String line;
-      Groups.push(new Block(lineNumber, 0));
+      Groups.push(new Block(lineNumber, 1));
       while ((line = bufferedReader.readLine()) != null) {
         try {
           if (!line.equals("")) {
