@@ -11,8 +11,9 @@ import java.io.IOException;
 public class Transpiler {
   public static void format(Parser parser, String file) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
-    for (FuncBlock f : parser.Functions.values()) {
-      f.format(fileWriter, parser.Comments);
+    FuncBlock[] functions = parser.Functions.values().toArray(new FuncBlock[0]);
+    for (int i = functions.length - 1; i >= 0; i--) {
+      functions[i].format(fileWriter, parser.Comments);
     }
     parser.Group.format(fileWriter, parser.Comments);
     fileWriter.close();
@@ -20,8 +21,9 @@ public class Transpiler {
 
   public static void py(Parser parser, String file) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
-    for (FuncBlock f : parser.Functions.values()) {
-      f.py(fileWriter, parser.Comments);
+    FuncBlock[] functions = parser.Functions.values().toArray(new FuncBlock[0]);
+    for (int i = functions.length - 1; i >= 0; i--) {
+      functions[i].py(fileWriter, parser.Comments);
     }
     parser.Group.py(fileWriter, parser.Comments);
     fileWriter.close();
@@ -29,8 +31,9 @@ public class Transpiler {
 
   public static void rust(Parser parser, String file) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
-    for (FuncBlock funcs : parser.Functions.values()) {
-      funcs.rust(fileWriter, parser.Comments);
+    FuncBlock[] functions = parser.Functions.values().toArray(new FuncBlock[0]);
+    for (int i = functions.length - 1; i >= 0; i--) {
+      functions[i].rust(fileWriter, parser.Comments);
     }
     fileWriter.write("fn main() {\n");
     parser.Group.rust(fileWriter, parser.Comments);
@@ -40,8 +43,9 @@ public class Transpiler {
 
   public static void cpp(Parser parser, String file) throws IOException {
     FileWriter fileWriter = new FileWriter(file);
-    for (FuncBlock funcs : parser.Functions.values()) {
-      funcs.cpp(fileWriter, parser.Comments);
+    FuncBlock[] functions = parser.Functions.values().toArray(new FuncBlock[0]);
+    for (int i = functions.length - 1; i >= 0; i--) {
+      functions[i].cpp(fileWriter, parser.Comments);
     }
     fileWriter.write("int main() {\n");
     parser.Group.cpp(fileWriter, parser.Comments);
