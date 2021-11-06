@@ -1,22 +1,43 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+
 
 public class State {
   private final List<Message> messages = new ArrayList<>();
-  private List<Integer> currentConsumption = new ArrayList<>();
+  private final HashMap<Integer, Integer> currentConsumption = new HashMap<>();
   private Set<Integer> lowestConsumerId = new HashSet<>();
+  private final HashMap<Integer, String> userList = new HashMap<>();
+  private final HashSet<UserListener> listeners = new HashSet<>();
 
   public synchronized void addMessage(Message message) {
     messages.add(message);
   }
 
-  public synchronized void registerNewId(int id) {
-    currentConsumption.add(id, 0);
+  public synchronized void registerNewUser(int id, String username, UserListener listener) {
+    currentConsumption.put(id, 0);
     lowestConsumerId.add(id);
+    userList.put(id, username);
+    for (UserListener listen : listeners) {
+        listen.onNewUser(id, username);
+    }
+    listeners.add(listener);
+  }
+
+  public synchronized void deRegister(int id, UserListener listener) {
+    listeners.remove(listener);
+    for (UserListener listen : listeners) {
+      listen.onLostUser(id);
+    }
+    lowestConsumerId.remove(id);
+    currentConsumption.remove(id);
+  }
+
+  public synchronized HashMap<Integer, String> getUserList() {
+    return userList;
   }
 
   public synchronized Optional<Message> getMessage(int id) {
@@ -24,7 +45,7 @@ public class State {
       return Optional.empty();
     }
     Message message = messages.get(currentConsumption.get(id));
-    currentConsumption.set(id, currentConsumption.get(id) + 1);
+    currentConsumption.put(id, currentConsumption.get(id) + 1);
 
     if (lowestConsumerId.contains(id)) {
       lowestConsumerId.remove(id);
@@ -43,8 +64,7 @@ public class State {
 
         // Made messages smaller so now need to re-normalise to new message size.
         int finalLowestConsumptionLevel = lowestConsumptionLevel;
-        currentConsumption = currentConsumption.stream().map(f -> f - finalLowestConsumptionLevel).collect(
-            Collectors.toList());
+        currentConsumption.replaceAll((k,v) -> v - finalLowestConsumptionLevel);
       }
     }
 
