@@ -47,6 +47,7 @@ public class ClientHandler implements Runnable {
           }
         }
         while ((stateMessage = state.getMessage(connectionId)).isPresent()) {
+          System.out.println("Sending message: " + stateMessage.get().message);
           os.write(MessageToByte.receivedMessage(stateMessage.get()));
         }
         Thread.sleep(50);
