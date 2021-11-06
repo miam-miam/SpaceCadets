@@ -21,6 +21,11 @@ public class MessageToByte {
     return toByte(MessageId.MESSAGE, message.getBytes(StandardCharsets.UTF_8));
   }
 
+  public static byte[] removeUser(int userId) {
+    ByteBuffer data = ByteBuffer.allocate(4).putInt(userId);
+    return toByte(MessageId.REMOVE_USER, data.array());
+  }
+
   public static byte[] addUser(int userId, String username) {
     byte[] name = username.getBytes(StandardCharsets.UTF_8);
     ByteBuffer data = ByteBuffer.allocate(4 + name.length).putInt(userId).put(name);

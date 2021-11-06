@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 
 public class ByteToMessage {
   public static String string(byte[] data) {
@@ -15,7 +16,13 @@ public class ByteToMessage {
     return (Message) os.readObject();
   }
 
-  public static int length(byte[] input) {
+  public static HashMap<Integer, String> listUser (byte[] data) throws IOException, ClassNotFoundException {
+    InputStream is = new ByteArrayInputStream(data);
+    ObjectInputStream os = new ObjectInputStream(is);
+    return (HashMap<Integer, String>) os.readObject();
+  }
+
+  public static int integer(byte[] input) {
     return (input[0] << 24) & 0xff000000
         | (input[1] << 16) & 0x00ff0000
         | (input[2] << 8) & 0x0000ff00
