@@ -50,8 +50,8 @@ public class State {
       lowestConsumerId.remove(id);
       if (lowestConsumerId.isEmpty()) {
         int lowestConsumptionLevel = Integer.MAX_VALUE;
-        lowestConsumerId = new HashSet<>(List.of(new Integer[] {0}));
-        for (int consumeId = 1; consumeId < currentConsumption.size(); consumeId++) {
+        lowestConsumerId = new HashSet<>();
+        for (int consumeId = 0; consumeId < currentConsumption.size(); consumeId++) {
           if (lowestConsumptionLevel > currentConsumption.get(consumeId)) {
             lowestConsumptionLevel = currentConsumption.get(consumeId);
             lowestConsumerId = new HashSet<>(List.of(new Integer[] {consumeId}));

@@ -21,6 +21,10 @@ public class MessageToByte {
     return toByte(MessageId.MESSAGE, message.getBytes(StandardCharsets.UTF_8));
   }
 
+  public static byte[] salt(String salt) {
+    return toByte(MessageId.SALT, salt.getBytes(StandardCharsets.UTF_8));
+  }
+
   public static byte[] encrypted(Message message) throws IOException {
     ByteArrayOutputStream bObj = new ByteArrayOutputStream();
     ObjectOutputStream out;
