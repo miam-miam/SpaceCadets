@@ -11,15 +11,17 @@ public class ClientHandler implements Runnable, UserListener {
   final Socket socket;
   final int connectionId;
   final State state;
+  final String salt;
   String username;
   DataInputStream is;
   OutputStream os;
   List<String> hashedPasswords = new ArrayList<>();
 
-  public ClientHandler(Socket socket, int connectionId, State state) {
+  public ClientHandler(Socket socket, int connectionId, State state, String salt) {
     this.socket = socket;
     this.connectionId = connectionId;
     this.state = state;
+    this.salt = salt;
   }
 
   @Override
@@ -27,18 +29,22 @@ public class ClientHandler implements Runnable, UserListener {
     try {
       is = new DataInputStream(socket.getInputStream());
       os = socket.getOutputStream();
+      Optional<Message> stateMessage;
+
+      os.write(MessageToByte.salt(salt));
+
       byte[] input = new byte[5];
       is.readFully(input);
       byte[] data = new byte[ByteToMessage.integer(input)];
       is.readFully(data);
       MessageId id = MessageId.values[input[4]];
+
       if (id != MessageId.INIT) {
         System.err.println("Received incorrect initial packet.");
       }
       username = ByteToMessage.string(data);
       state.registerNewUser(connectionId, username, this);
       System.out.println(username + " has connected!");
-      Optional<Message> stateMessage;
       os.write(MessageToByte.listUser(state.getUserList()));
       while (!socket.isClosed()) {
         while (is.available() > 1) {

@@ -10,27 +10,34 @@ import java.util.HashMap;
 import java.util.List;
 
 public class Client {
-  // Made using BCrypt.gensalt(12)
-  static final String SALT = "$2a$12$gn6Pb952p4ofjcdMHOYOpe";
 
   public static void main(String[] args) throws IOException {
     BufferedReader obj = new BufferedReader(new InputStreamReader(System.in));
-    System.out.print("Please input a username: ");
-    String username = obj.readLine();
     HashMap<Integer, String> users = new HashMap<>();
     List<String> passwords = new ArrayList<>();
     List<String> hashedPasswords = new ArrayList<>();
     byte[] input = new byte[5];
+
+    System.out.print("Please input a username: ");
+    String username = obj.readLine();
     try (Socket socket = new Socket("localhost", 3001)) {
       OutputStream os = socket.getOutputStream();
       DataInputStream is = new DataInputStream(socket.getInputStream());
       os.write(MessageToByte.init(username));
+      is.readFully(input);
+      byte[] data = new byte[ByteToMessage.integer(input)];
+      is.readFully(data);
+      MessageId id = MessageId.values[input[4]];
+      if (id != MessageId.SALT) {
+        System.err.println("Received incorrect initial packet.");
+      }
+      final String salt = ByteToMessage.string(data);
       while (true) {
         if (obj.ready()) {
           String userInput = obj.readLine();
           if (userInput.startsWith("/password ")) {
             String password = userInput.substring(10);
-            String hashedPassword = BCrypt.hashpw(password, SALT);
+            String hashedPassword = BCrypt.hashpw(password, salt);
             System.out.println("Set new password!");
             passwords.add(password);
             hashedPasswords.add(hashedPassword);
@@ -49,7 +56,7 @@ public class Client {
         }
         while (is.available() > 1) {
           is.readFully(input);
-          byte[] data = new byte[ByteToMessage.integer(input)];
+          data = new byte[ByteToMessage.integer(input)];
           is.readFully(data);
           switch (MessageId.values[input[4]]) {
             case ADD_USER:
