@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-
 public class State {
   private final List<Message> messages = new ArrayList<>();
   private final HashMap<Integer, Integer> currentConsumption = new HashMap<>();
@@ -22,7 +21,7 @@ public class State {
     lowestConsumerId.add(id);
     userList.put(id, username);
     for (UserListener listen : listeners) {
-        listen.onNewUser(id, username);
+      listen.onNewUser(id, username);
     }
     listeners.add(listener);
   }
@@ -50,7 +49,7 @@ public class State {
     if (lowestConsumerId.contains(id)) {
       lowestConsumerId.remove(id);
       if (lowestConsumerId.isEmpty()) {
-        int lowestConsumptionLevel = currentConsumption.get(0);
+        int lowestConsumptionLevel = Integer.MAX_VALUE;
         lowestConsumerId = new HashSet<>(List.of(new Integer[] {0}));
         for (int consumeId = 1; consumeId < currentConsumption.size(); consumeId++) {
           if (lowestConsumptionLevel > currentConsumption.get(consumeId)) {
@@ -64,14 +63,9 @@ public class State {
 
         // Made messages smaller so now need to re-normalise to new message size.
         int finalLowestConsumptionLevel = lowestConsumptionLevel;
-        currentConsumption.replaceAll((k,v) -> v - finalLowestConsumptionLevel);
+        currentConsumption.replaceAll((k, v) -> v - finalLowestConsumptionLevel);
       }
     }
-
-    if (message.user == id) {
-      return Optional.empty();
-    } else {
-      return Optional.of(message);
-    }
+    return Optional.of(message);
   }
 }
