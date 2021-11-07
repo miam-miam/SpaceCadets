@@ -2,6 +2,8 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class ClientHandler implements Runnable, UserListener {
@@ -12,6 +14,7 @@ public class ClientHandler implements Runnable, UserListener {
   String username;
   DataInputStream is;
   OutputStream os;
+  List<String> hashedPasswords = new ArrayList<>();
 
   public ClientHandler(Socket socket, int connectionId, State state) {
     this.socket = socket;
@@ -42,20 +45,36 @@ public class ClientHandler implements Runnable, UserListener {
           is.readFully(input);
           data = new byte[ByteToMessage.integer(input)];
           is.readFully(data);
-          if (MessageId.values[input[4]] == MessageId.MESSAGE) {
-            Message message = new Message(connectionId, ByteToMessage.string(data));
-            System.out.println("[" + username + "]: " + message.message);
-            state.addMessage(message);
+          switch (MessageId.values[input[4]]) {
+            case MESSAGE:
+              Message message = new Message(connectionId, ByteToMessage.string(data));
+              System.out.println("[" + username + "]: " + message.message);
+              state.addMessage(message);
+              break;
+            case MESSAGE_RECEIVED:
+              Message received = ByteToMessage.receivedMessage(data);
+              received.user = connectionId;
+              System.out.println("[" + username + "] sent encrypted message: " + received.message);
+              state.addMessage(received);
+            case ADD_PASSWORD:
+              hashedPasswords.add(ByteToMessage.string(data));
+              break;
           }
         }
         while ((stateMessage = state.getMessage(connectionId)).isPresent()) {
-          os.write(MessageToByte.receivedMessage(stateMessage.get()));
+          // Only send the message if the client has the potential of sending being able to decrypt
+          // it.
+          if (stateMessage.get().user != connectionId
+              && (stateMessage.get().passwordHash == null
+                  || hashedPasswords.contains(stateMessage.get().passwordHash))) {
+            os.write(MessageToByte.receivedMessage(stateMessage.get()));
+          }
         }
         Thread.sleep(50);
       }
       System.out.println(username + " has disconnected!");
       state.deRegister(connectionId, this);
-    } catch (IOException | InterruptedException e) {
+    } catch (IOException | InterruptedException | ClassNotFoundException e) {
       System.err.println("Got error: " + e.getMessage());
       try {
         socket.close();
@@ -84,5 +103,4 @@ public class ClientHandler implements Runnable, UserListener {
       e.printStackTrace();
     }
   }
-
 }

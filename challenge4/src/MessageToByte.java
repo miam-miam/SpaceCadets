@@ -21,6 +21,19 @@ public class MessageToByte {
     return toByte(MessageId.MESSAGE, message.getBytes(StandardCharsets.UTF_8));
   }
 
+  public static byte[] encrypted(Message message) throws IOException {
+    ByteArrayOutputStream bObj = new ByteArrayOutputStream();
+    ObjectOutputStream out;
+    out = new ObjectOutputStream(bObj);
+    out.writeObject(message);
+    out.close();
+    return toByte(MessageId.MESSAGE_RECEIVED, bObj.toByteArray());
+  }
+
+  public static byte[] password(String pass) {
+    return toByte(MessageId.ADD_PASSWORD, pass.getBytes(StandardCharsets.UTF_8));
+  }
+
   public static byte[] removeUser(int userId) {
     ByteBuffer data = ByteBuffer.allocate(4).putInt(userId);
     return toByte(MessageId.REMOVE_USER, data.array());
