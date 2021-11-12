@@ -1,7 +1,7 @@
 public class Main {
 
     public static void main(String[] args) {
-        Spirograph mySpirograph = new Spirograph(50,10,10);
+        Spirograph mySpirograph = new Spirograph(5,90,20);
         mySpirograph.generate();
     }
 }

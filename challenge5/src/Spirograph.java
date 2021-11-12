@@ -2,36 +2,47 @@ import static java.lang.Math.cos;
 import static java.lang.Math.round;
 import static java.lang.Math.sin;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Hashtable;
+import java.util.TreeMap;
 
 public class Spirograph {
-  private final HashMap<Coordinate, Character> output = new HashMap<>();
+  private final TreeMap<Coordinate, Character> outputs = new TreeMap<>();
   private final int fixedRadius;
   private final int movingRadius;
-  private final int offset;
-  public Spirograph(int fixedRadius, int movingRadius, int offset) {
+  private final int penOffset;
+  private final int max;
+  public Spirograph(int fixedRadius, int movingRadius, int penOffset) {
     this.fixedRadius = fixedRadius;
     this.movingRadius = movingRadius;
-    this.offset = offset;
+    this.penOffset = penOffset;
+    max = 2 * (Math.abs(fixedRadius - movingRadius) + Math.abs(penOffset));
   }
 
   public void generate() {
     int x;
     int y;
-    for (double t = 0; t < Math.PI * 2; t+=0.0000001) {
-      x = (int)round((fixedRadius-movingRadius)*cos(t) + offset*cos(((fixedRadius-movingRadius)/(float)movingRadius)*t));
-      y = (int)round((fixedRadius-movingRadius)*sin(t) - offset*sin(((fixedRadius-movingRadius)/(float)movingRadius)*t));
-      Coordinate coordinate = new Coordinate(x + fixedRadius, y + fixedRadius, fixedRadius*2);
-      output.put(coordinate, 'O');
+    for (double t = 0; t < Math.PI * 2; t+=0.000001) {
+      x = (int)round((fixedRadius-movingRadius)*cos(t) + penOffset *cos(((fixedRadius-movingRadius)/(float)movingRadius)*t));
+      y = (int)round((fixedRadius-movingRadius)*sin(t) - penOffset *sin(((fixedRadius-movingRadius)/(float)movingRadius)*t));
+      Coordinate coordinate = new Coordinate(x + max/2, y + max/2, max);
+
+      outputs.put(coordinate, 'O');
     }
-    for (int yy = 0; yy < fixedRadius * 2; yy++) {
-      StringBuilder res = new StringBuilder();
-      for (int xx = 0; xx < fixedRadius * 2; xx++) {
-        res.append(output.getOrDefault(new Coordinate(xx,yy, fixedRadius * 2), ' '));
+
+    x = 0;
+    y = outputs.firstKey().y;
+    int xTo;
+    int yTo;
+    for (Coordinate coordinate : outputs.keySet()) {
+      xTo = coordinate.x;
+      yTo = coordinate.y;
+      for(; y < yTo; y++) {
+        System.out.println();
+        x = 0;
       }
-      System.out.println(res);
+      System.out.print(" ".repeat(xTo - x));
+      x = xTo + 1;
+      System.out.print(outputs.get(coordinate));
     }
+    System.out.println();
   }
 }

@@ -1,9 +1,8 @@
-import java.util.Objects;
-
-public class Coordinate {
+public class Coordinate implements Comparable<Coordinate> {
   public Integer x;
   public Integer y;
-  private int max;
+  private final int max;
+
   public Coordinate(int x, int y, int max) {
     this.x = x;
     this.y = y;
@@ -30,8 +29,11 @@ public class Coordinate {
     Coordinate c = (Coordinate) o;
 
     // Compare the data members and return accordingly
-    return x.equals(c.x)
-        && y.equals(c.y);
+    return x.equals(c.x) && y.equals(c.y);
   }
 
+  @Override
+  public int compareTo(Coordinate o) {
+    return hashCode() - o.hashCode();
+  }
 }
