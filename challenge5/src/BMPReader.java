@@ -4,15 +4,22 @@ import java.io.IOException;
 import java.util.TreeMap;
 import javax.imageio.ImageIO;
 
-public class BMPReader extends Window {
+class BMPReader extends Window {
   final BufferedImage img;
 
+  /**
+   * Creates a BitMap Reader that can then generate a set of points to be printed.
+   *
+   * @param file the file from which the bmp should be read from.
+   * @throws IOException If the image cannot be read.
+   */
   public BMPReader(String file) throws IOException {
     img = ImageIO.read(new File(file));
     smallestX = 0;
     largestX = img.getWidth();
   }
 
+  /** @return The set of points where the image is black. */
   public TreeMap<Coordinate, Character> generate() {
     TreeMap<Coordinate, Character> outputs = new TreeMap<>();
     int height = img.getHeight();
