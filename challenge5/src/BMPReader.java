@@ -16,7 +16,7 @@ class BMPReader extends Window {
   public BMPReader(String file) throws IOException {
     img = ImageIO.read(new File(file));
     smallestX = 0;
-    largestX = img.getWidth();
+    largestX = img.getWidth() + 1;
   }
 
   /** @return The set of points where the image is black. */
@@ -24,9 +24,9 @@ class BMPReader extends Window {
     TreeMap<Coordinate, Character> outputs = new TreeMap<>();
     int height = img.getHeight();
     for (int h = 0; h < height; h++) {
-      for (int w = 0; w < largestX; w++) {
+      for (int w = 0; w < largestX - 1; w++) {
         if (img.getRGB(w, h) != 0xFFFFFFFF) {
-          outputs.put(new Coordinate(w, h, largestX), 'O');
+          outputs.put(new Coordinate(w, h, largestX), '8');
         }
       }
     }

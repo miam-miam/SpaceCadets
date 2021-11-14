@@ -1,3 +1,4 @@
+import static java.lang.Math.abs;
 import static java.lang.Math.cos;
 import static java.lang.Math.min;
 import static java.lang.Math.round;
@@ -17,23 +18,20 @@ class Spirograph extends Window {
    * @param fixedRadius the radius of the fixed circle.
    * @param movingRadius the radius of the moving circle.
    * @param penOffset the offset of the pen in the moving circle.
-   * @throws Exception If penOffset > movingRadius
+   * @throws Exception If abs(penOffset) > abs(movingRadius)
    */
   public Spirograph(int fixedRadius, int movingRadius, int penOffset) throws Exception {
-    if (penOffset > movingRadius) {
+    if (abs(penOffset) > abs(movingRadius)) {
       throw new Exception(
           "Cannot construct spirograph that has a bigger pen offset than a radius to contain it.");
     }
     this.fixedRadius = fixedRadius;
     this.movingRadius = movingRadius;
     this.penOffset = penOffset;
-    max =
-        2
-            * (Math.abs(fixedRadius - movingRadius)
-                + Math.abs(
-                    penOffset)); // The max is simply calculated by looking at the maximum possible
-                                 // values of the parametric equations, this may not actually be the
-                                 // maximum value that is produced by the equation.
+    // The max is simply calculated by looking at the maximum possible
+    // values of the parametric equations, this may not actually be the
+    // maximum value that is produced by the equation.
+    max = 2 * (Math.abs(fixedRadius - movingRadius) + Math.abs(penOffset));
   }
 
   /** @return The tree map containing all the points that the spirograph produces. */
@@ -69,7 +67,7 @@ class Spirograph extends Window {
       Coordinate coordinate = new Coordinate(x, y, max);
       smallestX = min(smallestX, x);
       largestX = Math.max(largestX, x);
-      outputs.put(coordinate, 'O');
+      outputs.put(coordinate, '8');
     }
     return outputs;
   }
