@@ -5,12 +5,20 @@ import static java.lang.Math.sin;
 
 import java.util.TreeMap;
 
-public class Spirograph extends Window {
+class Spirograph extends Window {
   private final float fixedRadius;
   private final float movingRadius;
   private final float penOffset;
   private final int max;
 
+  /**
+   * Creates a spirograph that can then be drawn.
+   *
+   * @param fixedRadius the radius of the fixed circle.
+   * @param movingRadius the radius of the moving circle.
+   * @param penOffset the offset of the pen in the moving circle.
+   * @throws Exception If penOffset > movingRadius
+   */
   public Spirograph(int fixedRadius, int movingRadius, int penOffset) throws Exception {
     if (penOffset > movingRadius) {
       throw new Exception(
@@ -19,9 +27,17 @@ public class Spirograph extends Window {
     this.fixedRadius = fixedRadius;
     this.movingRadius = movingRadius;
     this.penOffset = penOffset;
-    max = 2 * (Math.abs(fixedRadius - movingRadius) + Math.abs(penOffset));
+    max =
+        2
+            * (Math.abs(fixedRadius - movingRadius)
+                + Math.abs(
+                    penOffset)); // The max is simply calculated by looking at the maximum possible
+                                 // values of the parametric equations, this may not actually be the
+                                 // maximum value that is produced by the equation.
   }
 
+  /** @return The tree map containing all the points that the spirograph produces. */
+  @Override
   TreeMap<Coordinate, Character> generate() {
     TreeMap<Coordinate, Character> outputs = new TreeMap<>();
     smallestX = max;
@@ -36,14 +52,23 @@ public class Spirograph extends Window {
         ((Math.PI * 4)
                 * (Math.max(movingRadius, fixedRadius) / Math.min(movingRadius, fixedRadius)))
             / stepNum;
+    // I don't think there is a way to know exactly the period of the functions
+    // (correct me if I am wrong). This works for most cases and doesn't try to overestimate too
+    // much.
+
     double t;
     for (int i = 0; i <= stepNum; i++) {
       t = i * step;
-      x = (int) round(fixedMinusMoving * cos(t) + penOffset * cos(fixedMinusMovingDivMoving * t));
-      y = (int) round(fixedMinusMoving * sin(t) - penOffset * sin(fixedMinusMovingDivMoving * t));
-      Coordinate coordinate = new Coordinate(x + max / 2, y + max / 2, max);
-      smallestX = min(smallestX, x + max / 2);
-      largestX = Math.max(largestX, x + max / 2);
+      // The parametric eqs, max/2 is used to ensure x and y are always positive.
+      x =
+          (int) round(fixedMinusMoving * cos(t) + penOffset * cos(fixedMinusMovingDivMoving * t))
+              + max / 2;
+      y =
+          (int) round(fixedMinusMoving * sin(t) - penOffset * sin(fixedMinusMovingDivMoving * t))
+              + max / 2;
+      Coordinate coordinate = new Coordinate(x, y, max);
+      smallestX = min(smallestX, x);
+      largestX = Math.max(largestX, x);
       outputs.put(coordinate, 'O');
     }
     return outputs;

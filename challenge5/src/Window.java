@@ -1,16 +1,22 @@
 import java.util.TreeMap;
 
-public abstract class Window {
-  protected int smallestX;
-  protected int largestX;
+/**
+ * An abstract class that contains code to make all outputs generate look like they are in a
+ * graphical window.
+ */
+abstract class Window {
+  protected int smallestX; // The smallest x value of the set of points.
+  protected int largestX; // The largest x value of the set of points.
 
-  TreeMap<Coordinate, Character> generate() {
-    TreeMap<Coordinate, Character> output = new TreeMap<>();
-    output.put(new Coordinate(0, 0, 0), 'O');
-    return output;
-  }
+  /**
+   * Create a set of points to then print @return The set of points, a TreeMap is used so that it
+   * can be sorted.
+   */
+  abstract TreeMap<Coordinate, Character> generate();
 
+  /** Adds the window header to stdout. @param name the name of the header */
   private void windowHeader(String name) {
+    // Making sure there is enough space for everything.
     if ((largestX - name.length()) / 2 - 5 <= 0) {
       name = "";
     }
@@ -28,6 +34,11 @@ public abstract class Window {
     System.out.println("|" + "‾".repeat(largestX) + " " + "|");
   }
 
+  /**
+   * Draws a set of points onto stdout @param outputs the set of points. We output stuff by getting
+   * the first point and then repeating a space until the coordinate can be placed. It used to go
+   * through height*width times but this was very slow.
+   */
   private void draw(TreeMap<Coordinate, Character> outputs) {
     windowHeader("Spirograph");
     System.out.print("|");
