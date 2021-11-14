@@ -1,7 +1,7 @@
 public class Coordinate implements Comparable<Coordinate> {
+  private final int max;
   public Integer x;
   public Integer y;
-  private final int max;
 
   public Coordinate(int x, int y, int max) {
     this.x = x;
