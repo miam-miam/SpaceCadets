@@ -125,7 +125,7 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
             fIndex++;
         }
     }
-    uint4 change = convert_uint4_rte(sqrt(hypot(xChange * 255, yChange * 255)));
+    uint4 change = convert_uint4_rte(hypot(xChange * 255, yChange * 255));
     write_imageui(targetImage, pos, change);
 }
       """;
@@ -144,7 +144,7 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
   /** Creates the JOCLSimpleImage sample */
   public JOCLSimpleImage() {
     // Read the input image file and create the output images
-    String fileName = "src/main/resources/data/lena512color.png";
+    String fileName = "src/main/resources/data/Valve_original.png";
 
     inputImage = createBufferedImage(fileName);
     imageSizeX = inputImage.getWidth();
