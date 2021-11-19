@@ -15,6 +15,7 @@ import static org.jocl.CL.CL_QUEUE_PROFILING_ENABLE;
 import static org.jocl.CL.CL_RGBA;
 import static org.jocl.CL.CL_UNSIGNED_INT8;
 import static org.jocl.CL.clBuildProgram;
+import static org.jocl.CL.clCreateBuffer;
 import static org.jocl.CL.clCreateCommandQueueWithProperties;
 import static org.jocl.CL.clCreateContext;
 import static org.jocl.CL.clCreateImage;
@@ -32,7 +33,6 @@ import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
 import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.io.IOException;
@@ -66,72 +66,69 @@ public class JOCLSimpleImage {
    * The source code of the kernel to execute. It will rotate the input image by the given angle and
    * write the result into the output image.
    */
-  private static final String programSource =
-      ""
-          + "\n"
-          + "const sampler_t samplerIn = "
-          + "\n"
-          + "    CLK_NORMALIZED_COORDS_FALSE | "
-          + "\n"
-          + "    CLK_ADDRESS_CLAMP |"
-          + "\n"
-          + "    CLK_FILTER_NEAREST;"
-          + "\n"
-          + ""
-          + "\n"
-          + "const sampler_t samplerOut = "
-          + "\n"
-          + "    CLK_NORMALIZED_COORDS_FALSE |"
-          + "\n"
-          + "    CLK_ADDRESS_CLAMP |"
-          + "\n"
-          + "    CLK_FILTER_NEAREST;"
-          + "\n"
-          + ""
-          + "\n"
-          + "__kernel void rotateImage("
-          + "\n"
-          + "    __read_only  image2d_t sourceImage, "
-          + "\n"
-          + "    __write_only image2d_t targetImage, "
-          + "\n"
-          + "    float angle)"
-          + "\n"
-          + "{"
-          + "\n"
-          + "    int gidX = get_global_id(0);"
-          + "\n"
-          + "    int gidY = get_global_id(1);"
-          + "\n"
-          + "    int w = get_image_width(sourceImage);"
-          + "\n"
-          + "    int h = get_image_height(sourceImage);"
-          + "\n"
-          + "    int cx = w/2;"
-          + "\n"
-          + "    int cy = h/2;"
-          + "\n"
-          + "    int dx = gidX-cx;"
-          + "\n"
-          + "    int dy = gidY-cy;"
-          + "\n"
-          + "    float ca = cos(angle);"
-          + "\n"
-          + "    float sa = sin(angle);"
-          + "\n"
-          + "    int inX = (int)(cx+ca*dx-sa*dy);"
-          + "\n"
-          + "    int inY = (int)(cy+sa*dx+ca*dy);"
-          + "\n"
-          + "    int2 posIn = {inX, inY};"
-          + "\n"
-          + "    int2 posOut = {gidX, gidY};"
-          + "\n"
-          + "    uint4 pixel = read_imageui(sourceImage, samplerIn, posIn);"
-          + "\n"
-          + "    write_imageui(targetImage, posOut, pixel);"
-          + "\n"
-          + "}";
+  private static final String programSource = """
+const sampler_t samplerIn =
+    CLK_NORMALIZED_COORDS_FALSE |
+    CLK_ADDRESS_CLAMP |
+    CLK_FILTER_NEAREST;
+
+const sampler_t samplerOut =
+    CLK_NORMALIZED_COORDS_FALSE |
+    CLK_ADDRESS_CLAMP |
+    CLK_FILTER_NEAREST;
+
+
+//__kernel void rotateImage(__read_only  image2d_t sourceImage, __write_only image2d_t targetImage, float angle)
+//{
+//    int gidX = get_global_id(0);
+//    int gidY = get_global_id(1);
+//    int2 pos = {gidX, gidY};
+//
+//    uint4 pixel = read_imageui(sourceImage, samplerIn, pos);
+//    float4 color = convert_float4(pixel) / 255;
+//    color.xyz = 0.2126*color.x + 0.7152*color.y + 0.0722*color.z;
+//    pixel = convert_uint4_rte(color * 255);
+//
+//    write_imageui(targetImage, pos, pixel);
+//}
+
+float getGrayScale(uint4 pixel)
+{
+    float4 color = convert_float4(pixel) / 255;
+    return 0.2126*color.x + 0.7152*color.y + 0.0722*color.z;
+}
+__kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_t targetImage, __constant float * xFilter, __constant float * yFilter)
+{
+    int gidX = get_global_id(0);
+    int gidY = get_global_id(1);
+    int2 pos = {gidX, gidY};
+//    write_imageui(targetImage, pos, convert_uint4_rte(getGrayScale(read_imageui(sourceImage, samplerIn, pos)) * 255));
+    
+    
+    // Starting from 0
+    int width = get_image_width(sourceImage) - 1;
+    int height = get_image_height(sourceImage) - 1;
+
+    int fIndex = 0;
+    float xChange = (float) 0.0;
+    float yChange = (float) 0.0;
+    int2 curPos;
+    for (int y = -1; y <= 1; y++)
+    {
+        for (int x = -1; x <= 1; x++)
+        {
+            // Bounds check.
+            int2 curPos = {max(min(width, gidX + x), 0), max(min(height, gidY + y), 0)};
+            float pixel = getGrayScale(read_imageui(sourceImage, samplerIn, curPos));
+            xChange += xFilter[fIndex] * pixel;
+            yChange += yFilter[fIndex] * pixel;
+            fIndex++;
+        }
+    }
+    uint4 change = convert_uint4_rte(sqrt(hypot(xChange * 255, yChange * 255)));
+    write_imageui(targetImage, pos, change);
+}
+      """;
 
   private final BufferedImage inputImage;
   private final BufferedImage outputImage;
@@ -142,6 +139,8 @@ public class JOCLSimpleImage {
   private cl_kernel kernel;
   private cl_mem inputImageMem;
   private cl_mem outputImageMem;
+  private cl_mem xMatrix;
+  private cl_mem yMatrix;
   /** Creates the JOCLSimpleImage sample */
   public JOCLSimpleImage() {
     // Read the input image file and create the output images
@@ -200,7 +199,7 @@ public class JOCLSimpleImage {
     int sizeX = image.getWidth();
     int sizeY = image.getHeight();
 
-    BufferedImage result = new BufferedImage(sizeX, sizeY, BufferedImage.TYPE_BYTE_GRAY);
+    BufferedImage result = new BufferedImage(sizeX, sizeY, BufferedImage.TYPE_INT_RGB);
     Graphics g = result.createGraphics();
     g.drawImage(image, 0, 0, null);
     g.dispose();
@@ -216,21 +215,15 @@ public class JOCLSimpleImage {
     System.out.println("Starting animation...");
     Thread thread =
         new Thread(
-            new Runnable() {
-              float angle = 0.0f;
-
-              public void run() {
-                while (true) {
-                  rotateImage(angle);
-                  angle += 0.1f;
-                  outputComponent.repaint();
-
-                  try {
-                    Thread.sleep(20);
-                  } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
-                  }
+            () -> {
+              while (true) {
+                sobelImage();
+                outputComponent.repaint();
+                try {
+                  Thread.sleep(33);
+                } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
+                  return;
                 }
               }
             });
@@ -301,14 +294,14 @@ public class JOCLSimpleImage {
 
     // Create the kernel
     System.out.println("Creating kernel...");
-    kernel = clCreateKernel(program, "rotateImage", null);
+    kernel = clCreateKernel(program, "convolute", null);
   }
 
   /** Initialize the memory objects for the input and output images */
   private void initImageMem() {
     // Create the memory object for the input- and output image
-    DataBufferByte dataBufferSrc = (DataBufferByte) inputImage.getRaster().getDataBuffer();
-    byte[] dataSrc = dataBufferSrc.getData();
+    DataBufferInt dataBufferSrc = (DataBufferInt) inputImage.getRaster().getDataBuffer();
+    int[] dataSrc = dataBufferSrc.getData();
 
     cl_image_format imageFormat = new cl_image_format();
     imageFormat.image_channel_order = CL_RGBA;
@@ -330,21 +323,30 @@ public class JOCLSimpleImage {
             null);
 
     outputImageMem = clCreateImage(context, CL_MEM_WRITE_ONLY, imageFormat, imageDesc, null, null);
+
+    float[] xFloats = new float[] {-1, 0, 1, -2, 0, 2, -1, 0, 1};
+    float[] yFloats = new float[] {-1, -2, -1,0, 0, 0,1, 2, 1};
+
+    xMatrix = clCreateBuffer(context,
+        CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, Sizeof.cl_float * 9, Pointer.to(xFloats), null);
+    yMatrix = clCreateBuffer(context,
+        CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, Sizeof.cl_float * 9, Pointer.to(yFloats), null);
   }
 
   /**
    * Rotate the input image by the given angle, and write it into the output image
    *
-   * @param angle The rotation angle
+   *
    */
-  void rotateImage(float angle) {
+  void sobelImage() {
     // Set up the work size and arguments, and execute the kernel
     long[] globalWorkSize = new long[2];
     globalWorkSize[0] = imageSizeX;
     globalWorkSize[1] = imageSizeY;
     clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(inputImageMem));
     clSetKernelArg(kernel, 1, Sizeof.cl_mem, Pointer.to(outputImageMem));
-    clSetKernelArg(kernel, 2, Sizeof.cl_float, Pointer.to(new float[] {angle}));
+    clSetKernelArg(kernel, 2, Sizeof.cl_mem, Pointer.to(xMatrix));
+    clSetKernelArg(kernel, 3, Sizeof.cl_mem, Pointer.to(yMatrix));
     clEnqueueNDRangeKernel(commandQueue, kernel, 2, null, globalWorkSize, null, 0, null, null);
 
     // Read the pixel data into the output image
