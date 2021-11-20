@@ -141,6 +141,7 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
   private cl_mem outputImageMem;
   private cl_mem xMatrix;
   private cl_mem yMatrix;
+
   /** Creates the JOCLSimpleImage sample */
   public JOCLSimpleImage() {
     // Read the input image file and create the output images
