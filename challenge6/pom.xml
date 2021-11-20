@@ -10,6 +10,11 @@
       <groupId>org.jocl</groupId>
       <version>2.0.4</version>
     </dependency>
+    <dependency>
+      <artifactId>webcam-capture</artifactId>
+      <groupId>com.github.sarxos</groupId>
+      <version>0.3.12</version>
+    </dependency>
   </dependencies>
   <groupId>org.miam</groupId>
   <modelVersion>4.0.0</modelVersion>
