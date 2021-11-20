@@ -6,6 +6,7 @@
 
 import static org.jocl.CL.CL_CONTEXT_PLATFORM;
 import static org.jocl.CL.CL_DEVICE_TYPE_ALL;
+import static org.jocl.CL.CL_MEM_HOST_WRITE_ONLY;
 import static org.jocl.CL.CL_MEM_OBJECT_IMAGE2D;
 import static org.jocl.CL.CL_MEM_READ_ONLY;
 import static org.jocl.CL.CL_MEM_USE_HOST_PTR;
@@ -28,19 +29,16 @@ import static org.jocl.CL.clGetDeviceInfo;
 import static org.jocl.CL.clGetPlatformIDs;
 import static org.jocl.CL.clSetKernelArg;
 
-import java.awt.BorderLayout;
+import com.github.sarxos.webcam.Webcam;
+import com.github.sarxos.webcam.WebcamPanel;
+import com.github.sarxos.webcam.WebcamResolution;
 import java.awt.Component;
-import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
-import java.io.File;
-import java.io.IOException;
-import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import org.jocl.CL;
 import org.jocl.Pointer;
@@ -130,46 +128,44 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
 }
       """;
 
-  private final BufferedImage inputImage;
+  final Webcam webcam;
+  final int imageSizeX;
+  final int imageSizeY;
   private final BufferedImage outputImage;
-  private final int imageSizeX;
-  private final int imageSizeY;
+  BufferedImage inputImage;
+  int[] dataSrc;
   private cl_context context;
   private cl_command_queue commandQueue;
   private cl_kernel kernel;
-  private cl_mem inputImageMem;
   private cl_mem outputImageMem;
   private cl_mem xMatrix;
   private cl_mem yMatrix;
+  private cl_image_format imageFormat;
+  private cl_image_desc imageDesc;
+
 
   /** Creates the JOCLSimpleImage sample */
   public JOCLSimpleImage() {
     // Read the input image file and create the output images
-    String fileName = "src/main/resources/data/Valve_original.png";
-
-    inputImage = createBufferedImage(fileName);
-    imageSizeX = inputImage.getWidth();
-    imageSizeY = inputImage.getHeight();
+    webcam = Webcam.getDefault();
+    webcam.setViewSize(WebcamResolution.VGA.getSize());
+    imageSizeX = WebcamResolution.VGA.getSize().width;
+    imageSizeY = WebcamResolution.VGA.getSize().height;
+    inputImage = new BufferedImage(imageSizeX, imageSizeY, BufferedImage.TYPE_INT_RGB);
 
     outputImage = new BufferedImage(imageSizeX, imageSizeY, BufferedImage.TYPE_INT_RGB);
-
-    // Create the panel showing the input and output images
-    JPanel mainPanel = new JPanel(new GridLayout(2, 2));
-    JLabel inputLabel = new JLabel(new ImageIcon(inputImage));
-    mainPanel.add(inputLabel);
     JLabel outputLabel = new JLabel(new ImageIcon(outputImage));
-    mainPanel.add(outputLabel);
+    initCL();
+    initImageMem();
 
     // Create the main frame
     JFrame frame = new JFrame("Circle detector");
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    frame.setLayout(new BorderLayout());
-    frame.add(mainPanel, BorderLayout.CENTER);
+    frame.setLayout(new GridLayout(2, 2));
+    frame.add(new WebcamPanel(webcam));
+    frame.add(outputLabel);
     frame.pack();
     frame.setVisible(true);
-
-    initCL();
-    initImageMem();
     startAnimation(outputLabel);
   }
 
@@ -183,51 +179,13 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
   }
 
   /**
-   * Creates a BufferedImage of with type TYPE_INT_RGB from the file with the given name.
-   *
-   * @param fileName The file name
-   * @return The image, or null if the file may not be read
-   */
-  private static BufferedImage createBufferedImage(String fileName) {
-    BufferedImage image;
-    try {
-      image = ImageIO.read(new File(fileName));
-    } catch (IOException e) {
-      e.printStackTrace();
-      return null;
-    }
-
-    int sizeX = image.getWidth();
-    int sizeY = image.getHeight();
-
-    BufferedImage result = new BufferedImage(sizeX, sizeY, BufferedImage.TYPE_INT_RGB);
-    Graphics g = result.createGraphics();
-    g.drawImage(image, 0, 0, null);
-    g.dispose();
-    return result;
-  }
-
-  /**
    * Starts the thread which will advance the animation state and call the animation method.
    *
    * @param outputComponent The component to repaint after each step
    */
-  private void startAnimation(final Component outputComponent) {
+  void startAnimation(final Component outputComponent) {
     System.out.println("Starting animation...");
-    Thread thread =
-        new Thread(
-            () -> {
-              while (true) {
-                sobelImage();
-                outputComponent.repaint();
-                try {
-                  Thread.sleep(33);
-                } catch (InterruptedException e) {
-                  Thread.currentThread().interrupt();
-                  return;
-                }
-              }
-            });
+    Thread thread = new Thread(new Animation(outputComponent, this));
     thread.setDaemon(true);
     thread.start();
   }
@@ -299,29 +257,17 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
   }
 
   /** Initialize the memory objects for the input and output images */
-  private void initImageMem() {
-    // Create the memory object for the input- and output image
-    DataBufferInt dataBufferSrc = (DataBufferInt) inputImage.getRaster().getDataBuffer();
-    int[] dataSrc = dataBufferSrc.getData();
+  void initImageMem() {
 
-    cl_image_format imageFormat = new cl_image_format();
+    imageFormat = new cl_image_format();
     imageFormat.image_channel_order = CL_RGBA;
     imageFormat.image_channel_data_type = CL_UNSIGNED_INT8;
 
-    cl_image_desc imageDesc = new cl_image_desc();
+    imageDesc = new cl_image_desc();
     imageDesc.image_height = imageSizeY;
     imageDesc.image_width = imageSizeX;
     imageDesc.image_row_pitch = (long) imageSizeX * Sizeof.cl_uint;
     imageDesc.image_type = CL_MEM_OBJECT_IMAGE2D;
-
-    inputImageMem =
-        clCreateImage(
-            context,
-            CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-            imageFormat,
-            imageDesc,
-            Pointer.to(dataSrc),
-            null);
 
     outputImageMem = clCreateImage(context, CL_MEM_WRITE_ONLY, imageFormat, imageDesc, null, null);
 
@@ -344,6 +290,19 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
     long[] globalWorkSize = new long[2];
     globalWorkSize[0] = imageSizeX;
     globalWorkSize[1] = imageSizeY;
+
+    DataBufferInt dataBufferSrc = (DataBufferInt) inputImage.getRaster().getDataBuffer();
+    dataSrc = dataBufferSrc.getData();
+
+    cl_mem inputImageMem =
+        clCreateImage(
+            context,
+            CL_MEM_USE_HOST_PTR |  CL_MEM_HOST_WRITE_ONLY ,
+            imageFormat,
+            imageDesc,
+            Pointer.to(dataSrc),
+            null);
+
     clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(inputImageMem));
     clSetKernelArg(kernel, 1, Sizeof.cl_mem, Pointer.to(outputImageMem));
     clSetKernelArg(kernel, 2, Sizeof.cl_mem, Pointer.to(xMatrix));
