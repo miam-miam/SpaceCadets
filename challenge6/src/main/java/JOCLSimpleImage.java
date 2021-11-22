@@ -6,11 +6,10 @@
 
 import static org.jocl.CL.CL_CONTEXT_PLATFORM;
 import static org.jocl.CL.CL_DEVICE_TYPE_ALL;
-import static org.jocl.CL.CL_MEM_HOST_WRITE_ONLY;
+import static org.jocl.CL.CL_MEM_COPY_HOST_PTR;
 import static org.jocl.CL.CL_MEM_OBJECT_IMAGE2D;
 import static org.jocl.CL.CL_MEM_READ_ONLY;
-import static org.jocl.CL.CL_MEM_USE_HOST_PTR;
-import static org.jocl.CL.CL_MEM_WRITE_ONLY;
+import static org.jocl.CL.CL_MEM_READ_WRITE;
 import static org.jocl.CL.CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
 import static org.jocl.CL.CL_QUEUE_PROFILING_ENABLE;
 import static org.jocl.CL.CL_RGBA;
@@ -23,7 +22,10 @@ import static org.jocl.CL.clCreateImage;
 import static org.jocl.CL.clCreateKernel;
 import static org.jocl.CL.clCreateProgramWithSource;
 import static org.jocl.CL.clEnqueueNDRangeKernel;
+import static org.jocl.CL.clEnqueueReadBuffer;
 import static org.jocl.CL.clEnqueueReadImage;
+import static org.jocl.CL.clEnqueueWriteBuffer;
+import static org.jocl.CL.clEnqueueWriteImage;
 import static org.jocl.CL.clGetDeviceIDs;
 import static org.jocl.CL.clGetDeviceInfo;
 import static org.jocl.CL.clGetPlatformIDs;
@@ -60,6 +62,10 @@ import org.jocl.cl_queue_properties;
  * rotating image, which is rotated using an OpenCL kernel involving some basic image operations.
  */
 public class JOCLSimpleImage {
+  private static final int minR = 40;
+  private static final int maxR = 70;
+  private static final int sizeR = maxR - minR;
+
   /**
    * The source code of the kernel to execute. It will rotate the input image by the given angle and
    * write the result into the output image.
@@ -95,7 +101,7 @@ float getGrayScale(uint4 pixel)
     float4 color = convert_float4(pixel) / 255;
     return 0.2126*color.x + 0.7152*color.y + 0.0722*color.z;
 }
-__kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_t targetImage, __constant float * xFilter, __constant float * yFilter)
+__kernel void sobel(__read_only image2d_t sourceImage, __write_only image2d_t targetImage, __constant float * xFilter, __constant float * yFilter)
 {
     int gidX = get_global_id(0);
     int gidY = get_global_id(1);
@@ -124,24 +130,54 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
         }
     }
     uint4 change = convert_uint4_rte(hypot(xChange * 255, yChange * 255));
-    write_imageui(targetImage, pos, change);
+    if (change.x > 170) {
+        write_imageui(targetImage, pos, change);
+    }
 }
-      """;
+
+__kernel void hough(__read_only image2d_t sourceImage, __global int * accumulator, __constant float * theta) {
+    int gidX = get_global_id(0);
+    int gidY = get_global_id(1);
+    int2 pos = {gidX, gidY};
+    
+    int width = get_image_width(sourceImage);
+    int height = get_image_height(sourceImage);
+    
+    
+    uint4 pixel = read_imageui(sourceImage, samplerIn, pos);
+    if (pixel.x > 170) {
+        for (int r=%s; r < %s; r++) {
+            for (int t=0; t<360; t++) {
+                float angle = theta[t];
+                int a = gidX - (float) r * cos(angle);
+                int b = gidY - (float) r * sin(angle);  //polar coordinate for center (convert to radians)
+                if ( a >= 0 && a < width && b >= 0 && b < height) {
+                    int index = a + b * width + (r-%s) * width * height;
+                    atomic_inc(&accumulator[index]);
+                }
+            }
+        }
+    }
+}
+      """.formatted(minR, maxR, minR);
 
   final Webcam webcam;
   final int imageSizeX;
   final int imageSizeY;
   private final BufferedImage outputImage;
   BufferedImage inputImage;
-  int[] dataSrc;
+  private BufferedImage finalImage;
   private cl_context context;
   private cl_command_queue commandQueue;
-  private cl_kernel kernel;
+  private cl_kernel kernelSobel;
+  private cl_kernel kernelHough;
+  private cl_mem inputImageMem;
   private cl_mem outputImageMem;
+  private cl_mem accumulatorMem;
+  private cl_mem thetaMem;
   private cl_mem xMatrix;
   private cl_mem yMatrix;
-  private cl_image_format imageFormat;
-  private cl_image_desc imageDesc;
+  private float[] theta;
 
 
   /** Creates the JOCLSimpleImage sample */
@@ -155,6 +191,7 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
 
     outputImage = new BufferedImage(imageSizeX, imageSizeY, BufferedImage.TYPE_INT_RGB);
     JLabel outputLabel = new JLabel(new ImageIcon(outputImage));
+    JLabel finalLabel = new JLabel(new ImageIcon(inputImage));
     initCL();
     initImageMem();
 
@@ -162,11 +199,12 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
     JFrame frame = new JFrame("Circle detector");
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     frame.setLayout(new GridLayout(2, 2));
-    frame.add(new WebcamPanel(webcam));
+    frame.add(new WebcamPanel(webcam, WebcamResolution.VGA.getSize(), true));
     frame.add(outputLabel);
+    frame.add(finalLabel);
     frame.pack();
     frame.setVisible(true);
-    startAnimation(outputLabel);
+    startAnimation(new Component[] {outputLabel, finalLabel});
   }
 
   /**
@@ -181,11 +219,11 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
   /**
    * Starts the thread which will advance the animation state and call the animation method.
    *
-   * @param outputComponent The component to repaint after each step
+   * @param outputComponents The component to repaint after each step
    */
-  void startAnimation(final Component outputComponent) {
+  void startAnimation(final Component[] outputComponents) {
     System.out.println("Starting animation...");
-    Thread thread = new Thread(new Animation(outputComponent, this));
+    Thread thread = new Thread(new Animation(outputComponents, this));
     thread.setDaemon(true);
     thread.start();
   }
@@ -253,31 +291,53 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
 
     // Create the kernel
     System.out.println("Creating kernel...");
-    kernel = clCreateKernel(program, "convolute", null);
+    kernelSobel = clCreateKernel(program, "sobel", null);
+    kernelHough = clCreateKernel(program, "hough", null);
   }
 
   /** Initialize the memory objects for the input and output images */
   void initImageMem() {
 
-    imageFormat = new cl_image_format();
+    cl_image_format imageFormat = new cl_image_format();
     imageFormat.image_channel_order = CL_RGBA;
     imageFormat.image_channel_data_type = CL_UNSIGNED_INT8;
 
-    imageDesc = new cl_image_desc();
+    cl_image_desc imageDesc = new cl_image_desc();
     imageDesc.image_height = imageSizeY;
     imageDesc.image_width = imageSizeX;
     imageDesc.image_row_pitch = (long) imageSizeX * Sizeof.cl_uint;
     imageDesc.image_type = CL_MEM_OBJECT_IMAGE2D;
 
-    outputImageMem = clCreateImage(context, CL_MEM_WRITE_ONLY, imageFormat, imageDesc, null, null);
+    outputImageMem = clCreateImage(context, CL_MEM_READ_WRITE, imageFormat, imageDesc, null, null);
+
+    inputImageMem = clCreateImage(
+        context,
+        CL_MEM_READ_WRITE,
+        imageFormat,
+        imageDesc,
+        null,
+        null);
+
 
     float[] xFloats = new float[] {-1, 0, 1, -2, 0, 2, -1, 0, 1};
     float[] yFloats = new float[] {-1, -2, -1,0, 0, 0,1, 2, 1};
 
+    theta = new float[360];
+    for (int t=0; t < 360; t++) {
+      theta[t] = (float) (Math.PI * t/180);
+    }
+
     xMatrix = clCreateBuffer(context,
-        CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, Sizeof.cl_float * 9, Pointer.to(xFloats), null);
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_float * 9, Pointer.to(xFloats), null);
     yMatrix = clCreateBuffer(context,
-        CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, Sizeof.cl_float * 9, Pointer.to(yFloats), null);
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_float * 9, Pointer.to(yFloats), null);
+
+    accumulatorMem = clCreateBuffer(context, CL_MEM_READ_WRITE , Sizeof.cl_int * (
+        (long) imageSizeX * imageSizeY * sizeR), null, null );
+
+    thetaMem = clCreateBuffer(context,
+        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_float * 360, Pointer.to(theta), null);
+
   }
 
   /**
@@ -292,22 +352,16 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
     globalWorkSize[1] = imageSizeY;
 
     DataBufferInt dataBufferSrc = (DataBufferInt) inputImage.getRaster().getDataBuffer();
-    dataSrc = dataBufferSrc.getData();
 
-    cl_mem inputImageMem =
-        clCreateImage(
-            context,
-            CL_MEM_USE_HOST_PTR |  CL_MEM_HOST_WRITE_ONLY ,
-            imageFormat,
-            imageDesc,
-            Pointer.to(dataSrc),
-            null);
+    clEnqueueWriteImage(commandQueue, inputImageMem, true, new long[3], new long[] {imageSizeX, imageSizeY, 1 },
+        (long) imageSizeX * Sizeof.cl_uint, 0, Pointer.to(dataBufferSrc.getData()), 0, null, null);
 
-    clSetKernelArg(kernel, 0, Sizeof.cl_mem, Pointer.to(inputImageMem));
-    clSetKernelArg(kernel, 1, Sizeof.cl_mem, Pointer.to(outputImageMem));
-    clSetKernelArg(kernel, 2, Sizeof.cl_mem, Pointer.to(xMatrix));
-    clSetKernelArg(kernel, 3, Sizeof.cl_mem, Pointer.to(yMatrix));
-    clEnqueueNDRangeKernel(commandQueue, kernel, 2, null, globalWorkSize, null, 0, null, null);
+
+    clSetKernelArg(kernelSobel, 0, Sizeof.cl_mem, Pointer.to(inputImageMem));
+    clSetKernelArg(kernelSobel, 1, Sizeof.cl_mem, Pointer.to(outputImageMem));
+    clSetKernelArg(kernelSobel, 2, Sizeof.cl_mem, Pointer.to(xMatrix));
+    clSetKernelArg(kernelSobel, 3, Sizeof.cl_mem, Pointer.to(yMatrix));
+    clEnqueueNDRangeKernel(commandQueue, kernelSobel, 2, null, globalWorkSize, null, 0, null, null);
 
     // Read the pixel data into the output image
     DataBufferInt dataBufferDst = (DataBufferInt) outputImage.getRaster().getDataBuffer();
@@ -324,5 +378,86 @@ __kernel void convolute(__read_only image2d_t sourceImage, __write_only image2d_
         0,
         null,
         null);
+  }
+
+  int houghImage() {
+    // Set up the work size and arguments, and execute the kernel
+    long[] globalWorkSize = new long[2];
+    globalWorkSize[0] = imageSizeX;
+    globalWorkSize[1] = imageSizeY;
+
+
+    clSetKernelArg(kernelHough, 0, Sizeof.cl_mem, Pointer.to(outputImageMem));
+    clSetKernelArg(kernelHough, 1, Sizeof.cl_mem, Pointer.to(accumulatorMem));
+    clSetKernelArg(kernelHough, 2, Sizeof.cl_mem, Pointer.to(thetaMem));
+    clEnqueueNDRangeKernel(commandQueue, kernelHough, 2, null, globalWorkSize, null, 0, null, null);
+
+    int[] accumulator = new int[imageSizeX * imageSizeY * sizeR];
+    clEnqueueReadBuffer(
+        commandQueue,
+        accumulatorMem,
+        true,
+        0,
+        ((long) imageSizeX * imageSizeY * sizeR) * Sizeof.cl_int,
+        Pointer.to(accumulator),
+        0,
+        null,
+        null);
+//    /*
+    int max = 0;
+    int currentIndex = 0;
+    int maxIndex = 0;
+    for (int i : accumulator) {
+        if (i > max) {
+          max = i;
+          maxIndex = currentIndex;
+        }
+        currentIndex += 1;
+    }
+
+//    */
+    // Reset Image ready for next read.
+    clEnqueueWriteImage(commandQueue, outputImageMem, true, new long[3], new long[] {imageSizeX, imageSizeY, 1 },
+        (long) imageSizeX * Sizeof.cl_uint, 0, Pointer.to(new int[imageSizeY * imageSizeX]), 0, null, null);
+    clEnqueueWriteBuffer(
+        commandQueue,
+        accumulatorMem,
+        true,
+        0,
+        ((long) imageSizeX * imageSizeY * sizeR) * Sizeof.cl_int,
+        Pointer.to(new int[imageSizeX * imageSizeY * sizeR]),
+        0,
+        null,
+        null);
+//    outputImageMem = clCreateImage(context, CL_MEM_READ_WRITE, imageFormat, imageDesc, null, null);
+    return maxIndex;
+  }
+
+  void drawTarget(int index) {
+    int r = index / (imageSizeX * imageSizeY);
+    index = index % (imageSizeX * imageSizeY);
+    int y = index / imageSizeX;
+    index = index % imageSizeX;
+    int x = index;
+    r += minR;
+    System.out.printf("Radius: %s at X=%s and Y=%s\n", r, y, x);
+    for (int t=0; t < 360; t++) {
+      float angle = theta[t];
+      int a = (int) (x - (float) r * Math.cos(angle));
+      int b = (int) (y - (float) r * Math.sin(angle));  //polar coordinate for center (convert to radians)
+      if ( a > 0 && a < imageSizeX - 1 && b > 0 && b < imageSizeY - 1) {
+        inputImage.setRGB(a + 1, b, 0x1c871c);
+        inputImage.setRGB(a - 1, b, 0x1c871c);
+        inputImage.setRGB(a, b + 1, 0x1c871c);
+        inputImage.setRGB(a, b - 1, 0x1c871c);
+        inputImage.setRGB(a, b, 0x1c871c);
+      }
+    }
+    if (x > 8 && x < imageSizeX - 8 && y > 8 && y < imageSizeY - 8)
+    for (int step=-8; step <= 8; step++) {
+      inputImage.setRGB(x+step, y, 0x1c871c);
+      inputImage.setRGB(x, y+step, 0x1c871c);
+    }
+
   }
 }
