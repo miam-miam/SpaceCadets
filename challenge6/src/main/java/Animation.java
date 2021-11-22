@@ -3,11 +3,11 @@ import com.github.sarxos.webcam.WebcamListener;
 import java.awt.Component;
 
 public class Animation implements Runnable, WebcamListener {
-  final Component outputComponent;
+  final Component[] outputComponents;
   final JOCLSimpleImage joclSimpleImage;
 
-  Animation(Component outputComponent, JOCLSimpleImage joclSimpleImage) {
-    this.outputComponent = outputComponent;
+  Animation(Component[] outputComponent, JOCLSimpleImage joclSimpleImage) {
+    this.outputComponents = outputComponent;
     this.joclSimpleImage = joclSimpleImage;
   }
 
@@ -22,9 +22,19 @@ public class Animation implements Runnable, WebcamListener {
 
   @Override
   public void webcamImageObtained(WebcamEvent we) {
+    long start = System.currentTimeMillis();
     joclSimpleImage.inputImage.getGraphics().drawImage(we.getImage(), 0, 0, null);
     joclSimpleImage.sobelImage();
-    outputComponent.repaint();
+    int index = joclSimpleImage.houghImage();
+    joclSimpleImage.drawTarget(index);
+    for (Component component : outputComponents) {
+      component.repaint();
+    }
+    long end = System.currentTimeMillis();
+    System.out.println(
+        "Took "
+            + (end - start)
+            + " ms to draw frame."); // Have 50 ms to do everything has my webcam works at 20 fps.
   }
 
   @Override
