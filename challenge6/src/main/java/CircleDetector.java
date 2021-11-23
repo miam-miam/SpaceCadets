@@ -386,19 +386,19 @@ public class CircleDetector {
       }
       currentIndex += 1;
     }
-
-    CL.clEnqueueWriteImage(commandQueue, outputImageMem, true, new long[3],
+    CL.clEnqueueFillImage(commandQueue, outputImageMem, Pointer.to(new int[]{0, 0, 0, 0}),
+        new long[3],
         new long[]{imageSizeX, imageSizeY, 1},
-        (long) imageSizeX * Sizeof.cl_uint, 0,
-        Pointer.to(new long[imageSizeY * imageSizeX]), 0,
+        0,
         null, null);
-    CL.clEnqueueWriteBuffer(
+    long start = System.currentTimeMillis();
+    CL.clEnqueueFillBuffer(
         commandQueue,
         accumulatorMem,
-        true,
+        Pointer.to(new float[0]),
+        1,
         0,
         ((long) imageSizeX * imageSizeY * sizeR) * Sizeof.cl_int,
-        Pointer.to(new float[imageSizeX * imageSizeY * sizeR]),
         0,
         null,
         null);
