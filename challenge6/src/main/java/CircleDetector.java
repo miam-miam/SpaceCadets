@@ -25,18 +25,21 @@ import org.jocl.cl_program;
 import org.jocl.cl_queue_properties;
 
 /**
- * A simple example demonstrating image handling between JOCL and Swing. It shows an animation of a
- * rotating image, which is rotated using an OpenCL kernel involving some basic image operations.
+ * A CircleDetector using JOCL to interface with the GPU. A lot of the code you see is boilerplate
+ * as JOCL is a one-to-one wrapper around the OpenCL (a C API)
  */
-public class JOCLSimpleImage {
+public class CircleDetector {
 
+  // The different radius to look for.
   private static final int minR = 40;
   private static final int maxR = 70;
   private static final int sizeR = maxR - minR;
 
   /**
-   * The source code of the kernel to execute. It will rotate the input image by the given angle and
-   * write the result into the output image.
+   * The source code of the kernel to execute. It will transform an image into it's Sobel form
+   * (https://en.wikipedia.org/wiki/Sobel_operator) and then do a Hough transform
+   * (https://en.wikipedia.org/wiki/Hough_transform). I use %s to add dynamic vars to the source
+   * code.
    */
   private static final String programSource = """
       const sampler_t samplerIn =
@@ -49,33 +52,18 @@ public class JOCLSimpleImage {
           CLK_ADDRESS_CLAMP |
           CLK_FILTER_NEAREST;
 
-
-      //__kernel void rotateImage(__read_only  image2d_t sourceImage, __write_only image2d_t targetImage, float angle)
-      //{
-      //    int gidX = get_global_id(0);
-      //    int gidY = get_global_id(1);
-      //    int2 pos = {gidX, gidY};
-      //
-      //    uint4 pixel = read_imageui(sourceImage, samplerIn, pos);
-      //    float4 color = convert_float4(pixel) / 255;
-      //    color.xyz = 0.2126*color.x + 0.7152*color.y + 0.0722*color.z;
-      //    pixel = convert_uint4_rte(color * 255);
-      //
-      //    write_imageui(targetImage, pos, pixel);
-      //}
-
+      // Convert a colour pixel to gray scale.
       float getGrayScale(uint4 pixel)
       {
           float4 color = convert_float4(pixel) / 255;
           return 0.2126*color.x + 0.7152*color.y + 0.0722*color.z;
       }
+            
       __kernel void sobel(__read_only image2d_t sourceImage, __write_only image2d_t targetImage, __constant float * xFilter, __constant float * yFilter)
       {
           int gidX = get_global_id(0);
           int gidY = get_global_id(1);
           int2 pos = {gidX, gidY};
-      //    write_imageui(targetImage, pos, convert_uint4_rte(getGrayScale(read_imageui(sourceImage, samplerIn, pos)) * 255));
-          
           
           // Starting from 0
           int width = get_image_width(sourceImage) - 1;
@@ -97,6 +85,7 @@ public class JOCLSimpleImage {
                   fIndex++;
               }
           }
+          // Currently not square rooting but this doesn't really matter.
           uint4 change = convert_uint4_rte(hypot(xChange * 255, yChange * 255));
           if (change.x > 170) {
               write_imageui(targetImage, pos, change);
@@ -118,9 +107,10 @@ public class JOCLSimpleImage {
                   for (int t=0; t<360; t++) {
                       float angle = theta[t];
                       int a = gidX - (float) r * cos(angle);
-                      int b = gidY - (float) r * sin(angle);  //polar coordinate for center (convert to radians)
+                      int b = gidY - (float) r * sin(angle);  //polar coordinate for center
                       if ( a >= 0 && a < width && b >= 0 && b < height) {
                           int index = a + b * width + (r-%s) * width * height;
+                          // Using atomic_inc to increment the accumulator whilst ensuring the numbers stay correct.
                           atomic_inc(&accumulator[index]);
                       }
                   }
@@ -134,23 +124,23 @@ public class JOCLSimpleImage {
   final int imageSizeY;
   private final BufferedImage outputImage;
   BufferedImage inputImage;
-  private cl_context context;
-  private cl_command_queue commandQueue;
-  private cl_kernel kernelSobel;
-  private cl_kernel kernelHough;
+  private float[] theta;
   private cl_mem inputImageMem;
   private cl_mem outputImageMem;
   private cl_mem accumulatorMem;
   private cl_mem thetaMem;
   private cl_mem xMatrix;
   private cl_mem yMatrix;
-  private float[] theta;
+  private cl_context context;
+  private cl_command_queue commandQueue;
+  private cl_kernel kernelSobel;
+  private cl_kernel kernelHough;
 
 
   /**
-   * Creates the JOCLSimpleImage sample
+   * Creates the CircleDetector.
    */
-  public JOCLSimpleImage() {
+  public CircleDetector() {
     // Read the input image file and create the output images
     webcam = Webcam.getDefault();
     webcam.setViewSize(WebcamResolution.VGA.getSize());
@@ -177,18 +167,18 @@ public class JOCLSimpleImage {
   }
 
   /**
-   * Entry point for this sample.
+   * Entry point for this detector.
    *
    * @param args not used
    */
   public static void main(String[] args) {
-    SwingUtilities.invokeLater(JOCLSimpleImage::new);
+    SwingUtilities.invokeLater(CircleDetector::new);
   }
 
   /**
-   * Starts the thread which will advance the animation state and call the animation method.
+   * Starts the thread which will attach to the webcam and run the animation.
    *
-   * @param outputComponents The component to repaint after each step
+   * @param outputComponents The components to repaint after each step
    */
   void startAnimation(final Component[] outputComponents) {
     System.out.println("Starting animation...");
@@ -318,7 +308,7 @@ public class JOCLSimpleImage {
   }
 
   /**
-   * Rotate the input image by the given angle, and write it into the output image
+   * Run the sobel operator on the input camera image.
    */
   void sobelImage() {
     // Set up the work size and arguments, and execute the kernel
@@ -356,6 +346,11 @@ public class JOCLSimpleImage {
         null);
   }
 
+  /**
+   * Run the hough transform on the image produced by the Sobel operator.
+   *
+   * @return the index of the highest voted number of points.
+   */
   int houghImage() {
     // Set up the work size and arguments, and execute the kernel
     long[] globalWorkSize = new long[2];
@@ -379,6 +374,8 @@ public class JOCLSimpleImage {
         0,
         null,
         null);
+
+    // Find the highest voted point.
     int max = 0;
     int currentIndex = 0;
     int maxIndex = 0;
@@ -410,6 +407,11 @@ public class JOCLSimpleImage {
     return maxIndex;
   }
 
+  /**
+   * Draws a target at the specified index.
+   *
+   * @param index the index of the highest voted number of points.
+   */
   void drawTarget(int index) {
     int r = index / (imageSizeX * imageSizeY);
     index = index % (imageSizeX * imageSizeY);
@@ -420,8 +422,8 @@ public class JOCLSimpleImage {
     for (int t = 0; t < 360; t++) {
       float angle = theta[t];
       int a = (int) (x - (float) r * Math.cos(angle));
-      int b = (int) (y - (float) r * Math.sin(
-          angle));  //polar coordinate for center (convert to radians)
+      int b = (int) (y - (float) r * Math.sin(angle));
+
       if (a > 0 && a < imageSizeX - 1 && b > 0 && b < imageSizeY - 1) {
         inputImage.setRGB(a + 1, b, 0x1c871c);
         inputImage.setRGB(a - 1, b, 0x1c871c);
@@ -430,6 +432,7 @@ public class JOCLSimpleImage {
         inputImage.setRGB(a, b, 0x1c871c);
       }
     }
+
     if (x > 8 && x < imageSizeX - 8 && y > 8 && y < imageSizeY - 8) {
       for (int step = -8; step <= 8; step++) {
         inputImage.setRGB(x + step, y, 0x1c871c);
