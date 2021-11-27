@@ -3,6 +3,7 @@ package miammiam100.typer;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.SpannableString;
 import android.view.Gravity;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -34,10 +35,11 @@ public class MainActivity extends AppCompatActivity {
         Objects.requireNonNull(getSupportActionBar()).setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
         getSupportActionBar().setCustomView(textView);
 
-
         runnable = new WPMUpdater(handler, textView, 500);
-        String word = "Hello World! this is a test I am going to keep on writing in here to see what is going to happHello World! this is a test I am going to keep on writing in here to see what is going to happenHello World! this is a test I am going to keep on writing in here to see what is going to happenen";
-        input.addTextChangedListener(new TypingWatcher(word, (WPMUpdater) runnable));
+        TextView text = findViewById(R.id.textView);
+
+        SpannableString word = new SpannableString("Hello World! this is a test I am going to keep on writing in here to see what is going to happHello World! this is a test I am going to keep on writing in here to see what is going to happenHello World! this is a test I am going to keep on writing in here to see what is going to happenen");
+        input.addTextChangedListener(new TypingWatcher(word, (WPMUpdater) runnable, text));
     }
 
     @Override
