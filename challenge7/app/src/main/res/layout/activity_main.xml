@@ -26,7 +26,6 @@
                 android:id="@+id/textView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Hello World! this is a test I am going to keep on writing in here to see what is going to happHello World! this is a test I am going to keep on writing in here to see what is going to happenHello World! this is a test I am going to keep on writing in here to see what is going to happenen"
                 android:textSize="48sp" />
         </LinearLayout>
     </ScrollView>
