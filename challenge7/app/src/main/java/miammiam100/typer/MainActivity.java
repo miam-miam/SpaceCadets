@@ -7,6 +7,7 @@ import android.text.SpannableString;
 import android.view.Gravity;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.ActionBar;
@@ -25,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         textView = new TextView(this);
-        textView.setText("0 wpm");
+        textView.setText("0" + R.string.wpm);
         textView.setTextSize(20);
         textView.setTypeface(null, Typeface.BOLD);
         textView.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -38,8 +39,10 @@ public class MainActivity extends AppCompatActivity {
         runnable = new WPMUpdater(handler, textView, 500);
         TextView text = findViewById(R.id.textView);
 
+        ScrollView scrollView = findViewById(R.id.scrollView);
+
         SpannableString word = new SpannableString("Hello World! this is a test I am going to keep on writing in here to see what is going to happHello World! this is a test I am going to keep on writing in here to see what is going to happenHello World! this is a test I am going to keep on writing in here to see what is going to happenen");
-        input.addTextChangedListener(new TypingWatcher(word, (WPMUpdater) runnable, text));
+        input.addTextChangedListener(new TypingWatcher(word, (WPMUpdater) runnable, text, scrollView));
     }
 
     @Override

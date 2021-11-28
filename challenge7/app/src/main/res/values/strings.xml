@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Typer</string>
     <string name="input">input</string>
+    <string name="wpm"> wpm</string>
 </resources>
