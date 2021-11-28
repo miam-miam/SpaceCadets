@@ -10,7 +10,6 @@ class WPMUpdater implements Runnable {
     private final TextView textView;
     public int charsWritten;
     public long startTime;
-    private String wpm;
 
     public WPMUpdater(Handler handler, TextView textView, int delay) {
         this.delay = delay;
