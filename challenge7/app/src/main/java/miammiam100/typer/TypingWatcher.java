@@ -9,6 +9,7 @@ import android.text.TextWatcher;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.UnderlineSpan;
+import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -26,8 +27,9 @@ class TypingWatcher implements TextWatcher {
     private final ScrollView scrollView;
     private int lastWordIndex = 0;
     private final HashMap<Integer, Integer> charToLineHeight = new HashMap<>();
+    private final EditText input;
 
-    public TypingWatcher(SpannableString text, WPMUpdater wpmUpdater, TextView textView, ScrollView scrollView) {
+    public TypingWatcher(SpannableString text, WPMUpdater wpmUpdater, TextView textView, ScrollView scrollView, EditText input) {
         this.text = text.toString().split("(?<= )");
         this.span = text;
         this.wpmUpdater = wpmUpdater;
@@ -35,6 +37,7 @@ class TypingWatcher implements TextWatcher {
         this.span.setSpan(underline, 0, this.text[0].length() - 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
         this.textView.setText(this.span);
         this.scrollView = scrollView;
+        this.input = input;
     }
 
     @Override
@@ -59,15 +62,26 @@ class TypingWatcher implements TextWatcher {
         String input = s.toString();
 
         if (s.toString().equals(text[index])) {
+
             s.clear();
             wpmUpdater.charsWritten += text[index].length();
             index += 1;
+            if (index == text.length) {
+                s.clear();
+                span.removeSpan(underline);
+                span.setSpan(correct, 0, wpmUpdater.charsWritten, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                this.textView.setText(span);
+                wpmUpdater.endTime = System.nanoTime();
+                this.input.removeTextChangedListener(this);
+                return;
+            }
             span.setSpan(underline, wpmUpdater.charsWritten, wpmUpdater.charsWritten + text[index].length() - 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             span.setSpan(correct, 0, wpmUpdater.charsWritten, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             Integer lineHeight = charToLineHeight.get(wpmUpdater.charsWritten);
             if (lineHeight != null) {
                 scrollView.post(() -> scrollView.scrollTo(0, lineHeight));
             }
+
         } else {
             int correctIndex = getCorrectIndex(input);
             span.setSpan(correct, 0, wpmUpdater.charsWritten + correctIndex, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
