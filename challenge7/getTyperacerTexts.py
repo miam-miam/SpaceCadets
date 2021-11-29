@@ -3,6 +3,9 @@ from bs4 import BeautifulSoup
 
 
 def get_html():
+    """
+    Scrapes quotes from typeracer and then prints to console so that it can be copied to strings.xml
+    """
     html_text = requests.get("https://typeracerdata.com/texts?sort=active_since&texts=full").text
 
     soup = BeautifulSoup(html_text, "html.parser")
