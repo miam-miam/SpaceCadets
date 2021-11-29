@@ -24,6 +24,11 @@ public class MainActivity extends AppCompatActivity {
     int delay = 500;
     TextView textView;
 
+    /**
+     * Ran when the activity is first created.
+     *
+     * @param savedInstanceState Used to pass to the child onCreate.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,16 +78,21 @@ public class MainActivity extends AppCompatActivity {
         Random random = new Random();
         String textToWrite = getResources().getStringArray(R.array.texts)[random.nextInt(1000)];
         SpannableString word = new SpannableString(textToWrite);
-//        SpannableString word = new SpannableString("test");
         input.addTextChangedListener(new TypingWatcher(word, (WPMUpdater) runnable, text, scrollView, input));
     }
 
+    /**
+     * Resume the WPM Updater.
+     */
     @Override
     protected void onResume() {
         handler.postDelayed(runnable, delay);
         super.onResume();
     }
 
+    /**
+     * Stop the WPM Updater.
+     */
     @Override
     protected void onPause() {
         handler.removeCallbacks(runnable); //stop handler when activity not visible super.onPause();

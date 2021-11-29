@@ -3,6 +3,9 @@ package miammiam100.typer;
 import android.os.Handler;
 import android.widget.TextView;
 
+/**
+ * WPM text updater.
+ */
 class WPMUpdater implements Runnable {
 
     private final Handler handler;
@@ -18,7 +21,11 @@ class WPMUpdater implements Runnable {
         this.textView = textView;
     }
 
+    /**
+     * Function added to event queue and run at the appropriate time.
+     */
     public void run() {
+        // Run every 50 ms until we get the first wpm info.
         if (charsWritten == 0) {
             handler.postDelayed(this, 50);
             return;

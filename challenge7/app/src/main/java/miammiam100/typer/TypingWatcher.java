@@ -15,19 +15,22 @@ import android.widget.TextView;
 
 import java.util.HashMap;
 
+/**
+ * A Typing watcher that is run when whenever the user inputs something into the input field.
+ */
 class TypingWatcher implements TextWatcher {
     private final String[] text;
     private final SpannableString span;
     private final WPMUpdater wpmUpdater;
-    private int index = -1;
     private final TextView textView;
     private final UnderlineSpan underline = new UnderlineSpan();
     private final ForegroundColorSpan correct = new ForegroundColorSpan(Color.GREEN);
     private final BackgroundColorSpan fail = new BackgroundColorSpan(Color.RED);
     private final ScrollView scrollView;
-    private int lastWordIndex = 0;
     private final HashMap<Integer, Integer> charToLineHeight = new HashMap<>();
     private final EditText input;
+    private final int lastWordIndex = 0;
+    private int index = -1;
 
     public TypingWatcher(SpannableString text, WPMUpdater wpmUpdater, TextView textView, ScrollView scrollView, EditText input) {
         this.text = text.toString().split("(?<= )");
@@ -48,8 +51,14 @@ class TypingWatcher implements TextWatcher {
     public void onTextChanged(CharSequence s, int start, int before, int count) {
     }
 
+    /**
+     * Ran when the text is changed.
+     *
+     * @param s An editable view of the text inputted.
+     */
     @Override
     public void afterTextChanged(Editable s) {
+        // Only ran the first time
         if (index == -1) {
             wpmUpdater.startTime = System.nanoTime();
             index = 0;
@@ -61,6 +70,7 @@ class TypingWatcher implements TextWatcher {
 
         String input = s.toString();
 
+        // Check if exactly matches the text
         if (s.toString().equals(text[index])) {
 
             s.clear();
@@ -81,7 +91,7 @@ class TypingWatcher implements TextWatcher {
             if (lineHeight != null) {
                 scrollView.post(() -> scrollView.scrollTo(0, lineHeight));
             }
-
+            // Get where the user got it wrong.
         } else {
             int correctIndex = getCorrectIndex(input);
             span.setSpan(correct, 0, wpmUpdater.charsWritten + correctIndex, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -90,6 +100,12 @@ class TypingWatcher implements TextWatcher {
         this.textView.setText(this.span);
     }
 
+    /**
+     * Find where the input does not match with the text.
+     *
+     * @param input The string to compare to
+     * @return The index at which the character no longer matches
+     */
     public int getCorrectIndex(String input) {
         int i;
         for (i = 0; i < Math.min(input.length(), text[index].length()); i++) {

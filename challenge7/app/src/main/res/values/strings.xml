@@ -2,6 +2,7 @@
     <string name="app_name">Typer</string>
     <string name="input">input</string>
     <string name="wpm"> wpm</string>
+<!--    Texts scraped from typerracer.com using the python script.-->
     <string-array name="texts">
         <item>Sticks and stones will break your bones. They seldom let you snooze. Spooky, scary skeletons will wake you with a boo!</item>
         <item>But first, A toast, to Emily. Always the bridesmaid, never the bride! Tell me my dear, can a heart still break once it\'s stopped beating\?</item>
