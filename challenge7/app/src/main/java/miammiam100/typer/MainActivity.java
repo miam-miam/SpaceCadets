@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         EditText input = findViewById(R.id.input);
+        input.requestFocus();
         Objects.requireNonNull(getSupportActionBar()).setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
         getSupportActionBar().setCustomView(topBar);
 
