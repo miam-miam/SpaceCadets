@@ -16,6 +16,7 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.Objects;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     Handler handler = new Handler();
@@ -68,7 +69,10 @@ public class MainActivity extends AppCompatActivity {
 
         ScrollView scrollView = findViewById(R.id.scrollView);
 
-        SpannableString word = new SpannableString("Hello World! this is really happening!");
+        Random random = new Random();
+        String textToWrite = getResources().getStringArray(R.array.texts)[random.nextInt(1000)];
+        SpannableString word = new SpannableString(textToWrite);
+//        SpannableString word = new SpannableString("test");
         input.addTextChangedListener(new TypingWatcher(word, (WPMUpdater) runnable, text, scrollView, input));
     }
 
