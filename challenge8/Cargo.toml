@@ -19,3 +19,7 @@ panic = "abort"
 [dependencies]
 bootloader = "0.10.9"
 font8x8 = { version = "0.3.1", default-features = false, features=["unicode"]}
+lazy_static = { version = "1.4.0", features=["spin_no_std"] }
+spin = "0.9.2"
+x86_64 = "0.14.6"
+volatile = "0.4.4"

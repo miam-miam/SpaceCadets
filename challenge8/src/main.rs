@@ -1,28 +1,30 @@
 #![no_std]
 #![no_main]
 #![feature(core_intrinsics)]
+#![feature(abi_x86_interrupt)]
 
+mod gdt;
+mod interrupts;
 mod logger;
 
-use crate::logger::Logger;
 use bootloader::{entry_point, BootInfo};
-use core::fmt::Write;
 use core::panic::PanicInfo;
 
 entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     if let Some(framebuffer) = boot_info.framebuffer.as_mut() {
-        let info = framebuffer.info();
-        let mut logger = Logger::new(framebuffer.buffer_mut(), info);
-        write!(logger, "Test").unwrap();
-        writeln!(logger, "a").unwrap();
+        logger::LOGGER.lock().instantiate(framebuffer);
     }
-
+    gdt::init();
+    interrupts::init_idt();
+    println!("test");
+    println!("hoi");
     loop {}
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
     loop {}
 }
