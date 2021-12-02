@@ -1,28 +1,34 @@
-use bootloader::boot_info::{FrameBufferInfo, PixelFormat};
 use core::{fmt, ptr};
+
+use bootloader::boot_info::{FrameBuffer, FrameBufferInfo, PixelFormat};
 use font8x8::UnicodeFonts;
+use lazy_static::lazy_static;
+use spin::Mutex;
+
+lazy_static! {
+    pub static ref LOGGER: Mutex<Logger> = Mutex::new(Logger {
+        framebuffer: None,
+        info: None,
+        x_pos: 0,
+        y_pos: 0
+    });
+}
 
 /// Additional vertical space between lines
 const LINE_SPACING: usize = 0;
 
 pub struct Logger {
-    framebuffer: &'static mut [u8],
-    info: FrameBufferInfo,
+    framebuffer: Option<&'static mut [u8]>,
+    info: Option<FrameBufferInfo>,
     x_pos: usize,
     y_pos: usize,
 }
 
 impl Logger {
-    /// Creates a new logger that uses the given framebuffer.
-    pub fn new(framebuffer: &'static mut [u8], info: FrameBufferInfo) -> Self {
-        let mut logger = Self {
-            framebuffer,
-            info,
-            x_pos: 0,
-            y_pos: 0,
-        };
-        logger.clear();
-        logger
+    pub fn instantiate(&mut self, buffer: &'static mut FrameBuffer) {
+        self.info = Some(buffer.info());
+        self.framebuffer = Some(buffer.buffer_mut());
+        self.clear();
     }
 
     fn newline(&mut self) {
@@ -42,15 +48,15 @@ impl Logger {
     pub fn clear(&mut self) {
         self.x_pos = 0;
         self.y_pos = 0;
-        self.framebuffer.fill(0);
+        self.framebuffer.as_mut().unwrap().fill(0);
     }
 
     fn width(&self) -> usize {
-        self.info.horizontal_resolution
+        self.info.unwrap().horizontal_resolution
     }
 
     fn height(&self) -> usize {
-        self.info.vertical_resolution
+        self.info.unwrap().vertical_resolution
     }
 
     fn write_char(&mut self, c: char) {
@@ -83,18 +89,18 @@ impl Logger {
     }
 
     fn write_pixel(&mut self, x: usize, y: usize, intensity: u8) {
-        let pixel_offset = y * self.info.stride + x;
-        let color = match self.info.pixel_format {
+        let pixel_offset = y * self.info.unwrap().stride + x;
+        let color = match self.info.unwrap().pixel_format {
             PixelFormat::RGB => [intensity, intensity, intensity / 2, 0],
             PixelFormat::BGR => [intensity / 2, intensity, intensity, 0],
             PixelFormat::U8 => [if intensity > 200 { 0xf } else { 0 }, 0, 0, 0],
             _ => unreachable!(),
         };
-        let bytes_per_pixel = self.info.bytes_per_pixel;
+        let bytes_per_pixel = self.info.unwrap().bytes_per_pixel;
         let byte_offset = pixel_offset * bytes_per_pixel;
-        self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
+        self.framebuffer.as_mut().unwrap()[byte_offset..(byte_offset + bytes_per_pixel)]
             .copy_from_slice(&color[..bytes_per_pixel]);
-        let _ = unsafe { ptr::read_volatile(&self.framebuffer[byte_offset]) };
+        let _ = unsafe { ptr::read_volatile(&self.framebuffer.as_mut().unwrap()[byte_offset]) };
     }
 }
 
@@ -105,4 +111,22 @@ impl fmt::Write for Logger {
         }
         Ok(())
     }
+}
+
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::logger::_print(format_args!($($arg)*)));
+}
+
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($fmt:expr) => ($crate::print!(concat!($fmt, "\n")));
+    ($fmt:expr, $($arg:tt)*) => ($crate::print!(concat!($fmt, "\n"), $($arg)*));
+}
+
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    use core::fmt::Write;
+    LOGGER.lock().write_fmt(args).unwrap();
 }
