@@ -18,6 +18,12 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     }
     gdt::init();
     interrupts::init_idt();
+    unsafe { interrupts::PICS.lock().initialize() };
+    x86_64::instructions::interrupts::enable();
+    main()
+}
+
+fn main() -> ! {
     println!("test");
     println!("hoi");
     loop {}
