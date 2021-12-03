@@ -9,15 +9,17 @@ pub struct Executor {
     waker_cache: BTreeMap<TaskId, Waker>,
 }
 
-impl Executor {
-    pub fn new() -> Self {
+impl Default for Executor {
+    fn default() -> Self {
         Executor {
             tasks: BTreeMap::new(),
             task_queue: Arc::new(ArrayQueue::new(100)),
             waker_cache: BTreeMap::new(),
         }
     }
+}
 
+impl Executor {
     pub fn spawn(&mut self, task: Task) {
         let task_id = task.id;
         if self.tasks.insert(task.id, task).is_some() {
@@ -51,10 +53,18 @@ impl Executor {
                 .or_insert_with(|| TaskWaker::new(task_id, task_queue.clone()));
             let mut context = Context::from_waker(waker);
             match task.poll(&mut context) {
-                Poll::Ready(()) => {
+                Poll::Ready(new_task) => {
                     // task done -> remove it and its cached waker
                     tasks.remove(&task_id);
                     waker_cache.remove(&task_id);
+                    if let Some(new_task) = new_task {
+                        // Reusing spawn code as we had to destructure self.
+                        let task_id = new_task.id;
+                        if tasks.insert(new_task.id, new_task).is_some() {
+                            panic!("task with same ID already in tasks");
+                        }
+                        task_queue.push(task_id).expect("queue full");
+                    }
                 }
                 Poll::Pending => {}
             }
@@ -79,6 +89,7 @@ struct TaskWaker {
 }
 
 impl TaskWaker {
+    #[allow(clippy::new_ret_no_self)]
     fn new(task_id: TaskId, task_queue: Arc<ArrayQueue<TaskId>>) -> Waker {
         Waker::from(Arc::new(TaskWaker {
             task_id,

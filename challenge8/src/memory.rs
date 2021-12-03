@@ -5,7 +5,7 @@ use x86_64::{
 };
 
 /// Initialize a new OffsetPageTable.
-///
+/// # Safety
 /// This function is unsafe because the caller must guarantee that the
 /// complete physical memory is mapped to virtual memory at the passed
 /// `physical_memory_offset`. Also, this function must be only called once
@@ -50,7 +50,7 @@ pub struct BootInfoFrameAllocator {
 
 impl BootInfoFrameAllocator {
     /// Create a FrameAllocator from the passed memory map.
-    ///
+    /// # Safety
     /// This function is unsafe because the caller must guarantee that the passed
     /// memory map is valid. The main requirement is that all frames that are marked
     /// as `USABLE` in it are really unused.

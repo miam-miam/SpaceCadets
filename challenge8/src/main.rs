@@ -15,7 +15,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use challenge8::memory::{self, BootInfoFrameAllocator};
     use x86_64::VirtAddr;
 
-    println!("Hello World{}", "!");
+    println!("Hello World{}", 5);
     challenge8::init();
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
@@ -24,8 +24,8 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
-    let mut executor = Executor::new();
-    executor.spawn(Task::new(example_task()));
+    let mut executor = Executor::default();
+    executor.spawn(Task::new_task_switcher(example_task()));
     executor.spawn(Task::new(keyboard::print_keypresses()));
     executor.run();
 }
@@ -41,7 +41,13 @@ async fn async_number() -> u32 {
     42
 }
 
-async fn example_task() {
+async fn example_task() -> Option<Task> {
     let number = async_number().await;
     println!("async number: {}", number);
+    Some(Task::new(example_task2()))
+}
+
+async fn example_task2() {
+    let number = async_number().await;
+    println!("async number: {}", number + 1);
 }

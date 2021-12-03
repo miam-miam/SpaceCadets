@@ -33,8 +33,8 @@ pub struct ScancodeStream {
     _private: (),
 }
 
-impl ScancodeStream {
-    pub fn new() -> Self {
+impl Default for ScancodeStream {
+    fn default() -> Self {
         SCANCODE_QUEUE
             .try_init_once(|| ArrayQueue::new(100))
             .expect("ScancodeStream::new should only be called once");
@@ -67,7 +67,7 @@ impl Stream for ScancodeStream {
 }
 
 pub async fn print_keypresses() {
-    let mut scancodes = ScancodeStream::new();
+    let mut scancodes = ScancodeStream::default();
     let mut keyboard = Keyboard::new(layouts::Us104Key, ScancodeSet1, HandleControl::Ignore);
 
     while let Some(scancode) = scancodes.next().await {

@@ -5,25 +5,31 @@ use core::{
     sync::atomic::{AtomicU64, Ordering},
     task::{Context, Poll},
 };
-
+use futures_util::FutureExt;
 pub mod executor;
 pub mod keyboard;
-pub mod simple_executor;
 
 pub struct Task {
     id: TaskId,
-    future: Pin<Box<dyn Future<Output = ()>>>,
+    future: Pin<Box<dyn Future<Output = Option<Task>>>>,
 }
 
 impl Task {
-    pub fn new(future: impl Future<Output = ()> + 'static) -> Task {
+    pub fn new_task_switcher(future: impl Future<Output = Option<Task>> + 'static) -> Task {
         Task {
             id: TaskId::new(),
             future: Box::pin(future),
         }
     }
 
-    fn poll(&mut self, context: &mut Context) -> Poll<()> {
+    pub fn new(future: impl Future<Output = ()> + 'static) -> Task {
+        Task {
+            id: TaskId::new(),
+            future: Box::pin(future.map(|_| None::<Task>)),
+        }
+    }
+
+    fn poll(&mut self, context: &mut Context) -> Poll<Option<Task>> {
         self.future.as_mut().poll(context)
     }
 }
