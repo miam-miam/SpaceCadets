@@ -1,4 +1,4 @@
-use super::Locked;
+use crate::allocator::Locked;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::{
     mem,
