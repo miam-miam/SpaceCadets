@@ -26,9 +26,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         clear y;
         incr 'x;
         decr y;
-        clear nine;
         clear three;
         incr three;
+        clear nine;
+        clear three;
         incr three;
         while three not 0 do;
             decr nine;
@@ -40,11 +41,9 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
                 incr 'x;
                 incr 'x;
             end;
+        incr three;
         end;
     };
-    // let mut x = 5;
-    // x += 1;
-    // __bb_y -= 1;
 
     println!("{}", x);
 
