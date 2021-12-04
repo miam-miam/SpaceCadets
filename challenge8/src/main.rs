@@ -3,10 +3,13 @@
 
 extern crate alloc;
 
+use core::panic::PanicInfo;
+
 use bootloader::{entry_point, BootInfo};
+
+use bb_macro::bb;
 use challenge8::println;
 use challenge8::task::{executor::Executor, keyboard, Task};
-use core::panic::PanicInfo;
 
 entry_point!(kernel_main);
 
@@ -17,6 +20,33 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     println!("Hello World{}", 5);
     challenge8::init();
+
+    let mut x = 5;
+    bb! {
+        clear y;
+        incr 'x;
+        decr y;
+        clear nine;
+        clear three;
+        incr three;
+        incr three;
+        while three not 0 do;
+            decr nine;
+            decr nine;
+            decr three;
+            incr 'x;
+            while nine not 0 do;
+                incr nine;
+                incr 'x;
+                incr 'x;
+            end;
+        end;
+    };
+    // let mut x = 5;
+    // x += 1;
+    // __bb_y -= 1;
+
+    println!("{}", x);
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
