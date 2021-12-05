@@ -2,6 +2,8 @@
 #![feature(proc_macro_span_shrink)]
 
 use proc_macro as pm;
+use proc_macro::TokenTree;
+use std::iter::Peekable;
 
 use proc_macro2 as pm2;
 use quote::{format_ident, quote, quote_spanned};
@@ -12,8 +14,11 @@ macro_rules! simple_expression {
         match create_arg($iter) {
             Ok(ok) => {
                 $argument = ok;
-                match check_for_semi($iter.next(), $argument.span()) {
-                    Ok(_) => $expressions.push($quote),
+                match check_for_semi($iter.peek(), $argument.span()) {
+                    Ok(_) => {
+                        $iter.next();
+                        $expressions.push($quote)
+                    }
                     Err(e) => $errors.push(e),
                 }
             }
@@ -24,13 +29,13 @@ macro_rules! simple_expression {
 
 #[proc_macro]
 pub fn bb(input: pm::TokenStream) -> pm::TokenStream {
-    let test = bb_to_rust(&mut input.into_iter(), false);
+    let test = bb_to_rust(&mut input.into_iter().peekable(), false);
     dbg!(test.clone());
     test.into()
 }
 
 fn bb_to_rust(
-    iter: &mut proc_macro::token_stream::IntoIter,
+    iter: &mut Peekable<proc_macro::token_stream::IntoIter>,
     close_while: bool,
 ) -> pm2::TokenStream {
     let mut expressions = vec![];
@@ -71,10 +76,14 @@ fn bb_to_rust(
             "while" => {
                 let mut closure = || -> Result<pm2::TokenStream, pm2::TokenStream> {
                     let argument = create_arg(iter)?;
-                    check_for_ident(iter.next(), argument.span(), "not")?;
-                    check_for_zero(iter.next(), argument.span())?;
-                    check_for_ident(iter.next(), argument.span(), "do")?;
-                    check_for_semi(iter.next(), argument.span())?;
+                    check_for_ident(iter.peek(), argument.span(), "not")?;
+                    iter.next();
+                    check_for_zero(iter.peek(), argument.span())?;
+                    iter.next();
+                    check_for_ident(iter.peek(), argument.span(), "do")?;
+                    iter.next();
+                    check_for_semi(iter.peek(), argument.span())?;
+                    iter.next();
                     let inside_expression = bb_to_rust(iter, true);
                     Ok(quote_spanned!(argument.span()=>
                         while #argument != 0 {
@@ -90,8 +99,11 @@ fn bb_to_rust(
             "end" if close_while => {
                 dbg!("end");
                 dbg!(expressions.clone());
-                if let Err(e) = check_for_semi(iter.next(), pm2::Span::from(token.span())) {
-                    errors.push(e);
+                match check_for_semi(iter.peek(), pm2::Span::from(token.span())) {
+                    Err(e) => errors.push(e),
+                    _ => {
+                        iter.next();
+                    }
                 }
                 return if errors.is_empty() {
                     quote!(#(#expressions)*)
@@ -124,19 +136,24 @@ fn bb_to_rust(
 }
 
 fn create_arg(
-    iter: &mut proc_macro::token_stream::IntoIter,
+    iter: &mut Peekable<proc_macro::token_stream::IntoIter>,
 ) -> Result<pm2::Ident, pm2::TokenStream> {
-    let peek = iter.next();
+    let peek = iter.peek();
     dbg!(peek.clone());
     if let Some(ref peek) = peek {
         if peek.to_string() == "'" {
-            return Ok(format_ident!("{}", get_ident(iter.next())?));
+            iter.next();
+            let res = Ok(format_ident!("{}", get_ident(iter.peek())?));
+            iter.next();
+            return res;
         }
     }
-    Ok(format_ident!("__bb_{}", get_ident(peek)?))
+    let res = Ok(format_ident!("__bb_{}", get_ident(peek)?));
+    iter.next();
+    res
 }
 
-fn get_ident(token: Option<pm::TokenTree>) -> Result<pm2::Ident, pm2::TokenStream> {
+fn get_ident(token: Option<&pm::TokenTree>) -> Result<pm2::Ident, pm2::TokenStream> {
     match token {
         Some(pm::TokenTree::Ident(x))
             if !(["while", "end", "incr", "decr", "clear"]
@@ -154,7 +171,7 @@ fn get_ident(token: Option<pm::TokenTree>) -> Result<pm2::Ident, pm2::TokenStrea
     }
 }
 
-fn check_for_semi(token: Option<pm::TokenTree>, span: pm2::Span) -> Result<(), pm2::TokenStream> {
+fn check_for_semi(token: Option<&TokenTree>, span: pm2::Span) -> Result<(), pm2::TokenStream> {
     dbg!(token.clone());
     match token {
         Some(pm::TokenTree::Punct(x)) if x.as_char() == ';' => {
@@ -165,7 +182,7 @@ fn check_for_semi(token: Option<pm::TokenTree>, span: pm2::Span) -> Result<(), p
     }
 }
 
-fn check_for_zero(token: Option<pm::TokenTree>, span: pm2::Span) -> Result<(), pm2::TokenStream> {
+fn check_for_zero(token: Option<&TokenTree>, span: pm2::Span) -> Result<(), pm2::TokenStream> {
     match token {
         Some(pm::TokenTree::Literal(x)) if x.to_string() == "0" => Ok(()),
         _ => Err(quote_spanned!(span=> compile_error!("expected a zero.");)),
@@ -173,7 +190,7 @@ fn check_for_zero(token: Option<pm::TokenTree>, span: pm2::Span) -> Result<(), p
 }
 
 fn check_for_ident(
-    token: Option<pm::TokenTree>,
+    token: Option<&TokenTree>,
     span: pm2::Span,
     ident: &str,
 ) -> Result<(), pm2::TokenStream> {
