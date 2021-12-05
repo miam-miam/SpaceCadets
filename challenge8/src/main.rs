@@ -3,6 +3,8 @@
 
 extern crate alloc;
 
+use alloc::vec;
+use alloc::vec::Vec;
 use core::panic::PanicInfo;
 
 use bootloader::{entry_point, BootInfo};
@@ -18,34 +20,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use challenge8::memory::{self, BootInfoFrameAllocator};
     use x86_64::VirtAddr;
 
-    println!("Hello World{}", 5);
     challenge8::init();
-
-    let mut x = 5;
-    bb! {
-        clear y;
-        incr 'x;
-        decr y;
-        clear three;
-        incr three;
-        clear nine;
-        clear three;
-        incr three;
-        while three not 0 do;
-            decr nine;
-            decr nine;
-            decr three;
-            incr 'x;
-            while nine not 0 do;
-                incr nine;
-                incr 'x;
-                incr 'x;
-            end;
-        incr three;
-        end;
-    };
-
-    println!("{}", x);
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
@@ -67,13 +42,25 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 async fn async_number() -> u32 {
-    42
+    bb! {
+        clear x;
+        incr x;
+        incr x;
+        clear 'x;
+        while x not 0 do;
+            incr 'x;
+            incr 'x;
+            incr 'x;
+            decr x;
+        end;
+    }
+    x
 }
 
-async fn example_task() -> Option<Task> {
+async fn example_task() -> Vec<Task> {
     let number = async_number().await;
     println!("async number: {}", number);
-    Some(Task::new(example_task2()))
+    vec![Task::new(example_task2()), Task::new(example_task2())]
 }
 
 async fn example_task2() {

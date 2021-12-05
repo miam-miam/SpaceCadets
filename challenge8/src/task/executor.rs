@@ -1,7 +1,9 @@
-use super::{Task, TaskId};
 use alloc::{collections::BTreeMap, sync::Arc, task::Wake};
 use core::task::{Context, Poll, Waker};
+
 use crossbeam_queue::ArrayQueue;
+
+use super::{Task, TaskId};
 
 pub struct Executor {
     tasks: BTreeMap<TaskId, Task>,
@@ -57,10 +59,10 @@ impl Executor {
                     // task done -> remove it and its cached waker
                     tasks.remove(&task_id);
                     waker_cache.remove(&task_id);
-                    if let Some(new_task) = new_task {
+                    for new_tasks in new_task {
                         // Reusing spawn code as we had to destructure self.
-                        let task_id = new_task.id;
-                        if tasks.insert(new_task.id, new_task).is_some() {
+                        let task_id = new_tasks.id;
+                        if tasks.insert(new_tasks.id, new_tasks).is_some() {
                             panic!("task with same ID already in tasks");
                         }
                         task_queue.push(task_id).expect("queue full");

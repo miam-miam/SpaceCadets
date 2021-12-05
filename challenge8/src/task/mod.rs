@@ -1,21 +1,25 @@
 use alloc::boxed::Box;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::{
     future::Future,
     pin::Pin,
     sync::atomic::{AtomicU64, Ordering},
     task::{Context, Poll},
 };
+
 use futures_util::FutureExt;
+
 pub mod executor;
 pub mod keyboard;
 
 pub struct Task {
     id: TaskId,
-    future: Pin<Box<dyn Future<Output = Option<Task>>>>,
+    future: Pin<Box<dyn Future<Output = Vec<Task>>>>,
 }
 
 impl Task {
-    pub fn new_task_switcher(future: impl Future<Output = Option<Task>> + 'static) -> Task {
+    pub fn new_task_switcher(future: impl Future<Output = Vec<Task>> + 'static) -> Task {
         Task {
             id: TaskId::new(),
             future: Box::pin(future),
@@ -25,11 +29,11 @@ impl Task {
     pub fn new(future: impl Future<Output = ()> + 'static) -> Task {
         Task {
             id: TaskId::new(),
-            future: Box::pin(future.map(|_| None::<Task>)),
+            future: Box::pin(future.map(|_| vec![])),
         }
     }
 
-    fn poll(&mut self, context: &mut Context) -> Poll<Option<Task>> {
+    fn poll(&mut self, context: &mut Context) -> Poll<Vec<Task>> {
         self.future.as_mut().poll(context)
     }
 }

@@ -1,12 +1,14 @@
-use crate::fixed_size_block::FixedSizeBlockAllocator;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::null_mut;
+
 use x86_64::{
     structures::paging::{
         mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,
     },
     VirtAddr,
 };
+
+use crate::fixed_size_block::FixedSizeBlockAllocator;
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
@@ -68,11 +70,4 @@ impl<A> Locked<A> {
     pub fn lock(&self) -> spin::MutexGuard<A> {
         self.inner.lock()
     }
-}
-
-/// Align the given address `addr` upwards to alignment `align`.
-///
-/// Requires that `align` is a power of two.
-fn align_up(addr: usize, align: usize) -> usize {
-    (addr + align - 1) & !(align - 1)
 }
