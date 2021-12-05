@@ -2,12 +2,10 @@
 #![feature(proc_macro_span_shrink)]
 
 use proc_macro as pm;
-use proc_macro::TokenTree;
 use std::iter::Peekable;
 
 use proc_macro2 as pm2;
 use quote::{format_ident, quote, quote_spanned};
-use syn::spanned::Spanned;
 
 macro_rules! simple_expression {
     ( $argument:ident, $expressions:ident, $errors:ident, $iter:ident, $quote:expr ) => {
@@ -29,19 +27,17 @@ macro_rules! simple_expression {
 
 #[proc_macro]
 pub fn bb(input: pm::TokenStream) -> pm::TokenStream {
-    let test = bb_to_rust(&mut input.into_iter().peekable(), false);
-    dbg!(test.clone());
+    let test = bb_to_rust(&mut input.into_iter().peekable(), None);
     test.into()
 }
 
 fn bb_to_rust(
     iter: &mut Peekable<proc_macro::token_stream::IntoIter>,
-    close_while: bool,
+    while_span: Option<pm2::Span>,
 ) -> pm2::TokenStream {
     let mut expressions = vec![];
     let mut errors = vec![];
     while let Some(token) = iter.next() {
-        dbg!(token.clone());
         match token.to_string().to_lowercase().as_str() {
             "incr" => {
                 let argument;
@@ -84,7 +80,7 @@ fn bb_to_rust(
                     iter.next();
                     check_for_semi(iter.peek(), argument.span())?;
                     iter.next();
-                    let inside_expression = bb_to_rust(iter, true);
+                    let inside_expression = bb_to_rust(iter, Some(argument.span()));
                     Ok(quote_spanned!(argument.span()=>
                         while #argument != 0 {
                             #inside_expression
@@ -96,9 +92,7 @@ fn bb_to_rust(
                     Err(x) => errors.push(x),
                 }
             }
-            "end" if close_while => {
-                dbg!("end");
-                dbg!(expressions.clone());
+            "end" if while_span.is_some() => {
                 match check_for_semi(iter.peek(), pm2::Span::from(token.span())) {
                     Err(e) => errors.push(e),
                     _ => {
@@ -112,7 +106,6 @@ fn bb_to_rust(
                 };
             }
             _ => {
-                dbg!(token.clone());
                 let message = format!("Unexpected expression: \"{}\".", token);
                 errors.push(quote_spanned! {
                     pm2::Span::from(token.span())=>
@@ -121,16 +114,15 @@ fn bb_to_rust(
             }
         }
     }
-    dbg!(expressions.clone());
+    if let Some(span) = while_span {
+        errors.push(quote_spanned! {
+            span=>
+            compile_error!("Unclosed while loop.");
+        });
+    }
     if errors.is_empty() {
         quote!(#(#expressions)*)
     } else {
-        if close_while {
-            errors.push(quote_spanned! {
-                expressions.first().span()=>
-                compile_error!("Unclosed while loop.");
-            });
-        }
         quote!(#(#errors)*)
     }
 }
@@ -139,7 +131,6 @@ fn create_arg(
     iter: &mut Peekable<proc_macro::token_stream::IntoIter>,
 ) -> Result<pm2::Ident, pm2::TokenStream> {
     let peek = iter.peek();
-    dbg!(peek.clone());
     if let Some(ref peek) = peek {
         if peek.to_string() == "'" {
             iter.next();
@@ -171,18 +162,14 @@ fn get_ident(token: Option<&pm::TokenTree>) -> Result<pm2::Ident, pm2::TokenStre
     }
 }
 
-fn check_for_semi(token: Option<&TokenTree>, span: pm2::Span) -> Result<(), pm2::TokenStream> {
-    dbg!(token.clone());
+fn check_for_semi(token: Option<&pm::TokenTree>, span: pm2::Span) -> Result<(), pm2::TokenStream> {
     match token {
-        Some(pm::TokenTree::Punct(x)) if x.as_char() == ';' => {
-            dbg!("yes");
-            Ok(())
-        }
+        Some(pm::TokenTree::Punct(x)) if x.as_char() == ';' => Ok(()),
         _ => Err(quote_spanned!(span=> compile_error!("expected a semi colon.");)),
     }
 }
 
-fn check_for_zero(token: Option<&TokenTree>, span: pm2::Span) -> Result<(), pm2::TokenStream> {
+fn check_for_zero(token: Option<&pm::TokenTree>, span: pm2::Span) -> Result<(), pm2::TokenStream> {
     match token {
         Some(pm::TokenTree::Literal(x)) if x.to_string() == "0" => Ok(()),
         _ => Err(quote_spanned!(span=> compile_error!("expected a zero.");)),
@@ -190,7 +177,7 @@ fn check_for_zero(token: Option<&TokenTree>, span: pm2::Span) -> Result<(), pm2:
 }
 
 fn check_for_ident(
-    token: Option<&TokenTree>,
+    token: Option<&pm::TokenTree>,
     span: pm2::Span,
     ident: &str,
 ) -> Result<(), pm2::TokenStream> {
