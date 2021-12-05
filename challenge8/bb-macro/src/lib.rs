@@ -1,5 +1,6 @@
 #![feature(proc_macro_span)]
 #![feature(proc_macro_span_shrink)]
+#![feature(result_into_ok_or_err)]
 
 use proc_macro as pm;
 use std::iter::Peekable;
@@ -7,6 +8,8 @@ use std::iter::Peekable;
 use proc_macro2 as pm2;
 use quote::{format_ident, quote, quote_spanned};
 
+/// A simple expression (incr, decr,...)
+/// we must use a macro as $quote must be evaluated after the macro has run.
 macro_rules! simple_expression {
     ( $argument:ident, $expressions:ident, $errors:ident, $iter:ident, $quote:expr ) => {
         match create_arg($iter) {
@@ -27,14 +30,17 @@ macro_rules! simple_expression {
 
 #[proc_macro]
 pub fn bb(input: pm::TokenStream) -> pm::TokenStream {
-    let test = bb_to_rust(&mut input.into_iter().peekable(), None);
-    test.into()
+    bb_to_rust(&mut input.into_iter().peekable(), None)
+        .into_ok_or_err()
+        .into()
 }
 
+/// A recursive function that is called when a while loop is encountered.
+/// We use a result to indicate if any parsing errors when encountered whilst recursing.
 fn bb_to_rust(
     iter: &mut Peekable<proc_macro::token_stream::IntoIter>,
     while_span: Option<pm2::Span>,
-) -> pm2::TokenStream {
+) -> Result<pm2::TokenStream, pm2::TokenStream> {
     let mut expressions = vec![];
     let mut errors = vec![];
     while let Some(token) = iter.next() {
@@ -80,7 +86,7 @@ fn bb_to_rust(
                     iter.next();
                     check_for_semi(iter.peek(), argument.span())?;
                     iter.next();
-                    let inside_expression = bb_to_rust(iter, Some(argument.span()));
+                    let inside_expression = bb_to_rust(iter, Some(argument.span()))?;
                     Ok(quote_spanned!(argument.span()=>
                         while #argument != 0 {
                             #inside_expression
@@ -100,9 +106,9 @@ fn bb_to_rust(
                     }
                 }
                 return if errors.is_empty() {
-                    quote!(#(#expressions)*)
+                    Ok(quote!(#(#expressions)*))
                 } else {
-                    quote!(#(#errors)*)
+                    Err(quote!(#(#errors)*))
                 };
             }
             _ => {
@@ -121,12 +127,13 @@ fn bb_to_rust(
         });
     }
     if errors.is_empty() {
-        quote!(#(#expressions)*)
+        Ok(quote!(#(#expressions)*))
     } else {
-        quote!(#(#errors)*)
+        Err(quote!(#(#errors)*))
     }
 }
 
+/// Create a new variable.
 fn create_arg(
     iter: &mut Peekable<proc_macro::token_stream::IntoIter>,
 ) -> Result<pm2::Ident, pm2::TokenStream> {
@@ -144,6 +151,7 @@ fn create_arg(
     res
 }
 
+/// Ensure the variable should actually exist.
 fn get_ident(token: Option<&pm::TokenTree>) -> Result<pm2::Ident, pm2::TokenStream> {
     match token {
         Some(pm::TokenTree::Ident(x))
@@ -162,13 +170,15 @@ fn get_ident(token: Option<&pm::TokenTree>) -> Result<pm2::Ident, pm2::TokenStre
     }
 }
 
+/// Check for a semicolon.
 fn check_for_semi(token: Option<&pm::TokenTree>, span: pm2::Span) -> Result<(), pm2::TokenStream> {
     match token {
         Some(pm::TokenTree::Punct(x)) if x.as_char() == ';' => Ok(()),
-        _ => Err(quote_spanned!(span=> compile_error!("expected a semi colon.");)),
+        _ => Err(quote_spanned!(span=> compile_error!("expected a semicolon.");)),
     }
 }
 
+/// Check for a zero (used in while command)
 fn check_for_zero(token: Option<&pm::TokenTree>, span: pm2::Span) -> Result<(), pm2::TokenStream> {
     match token {
         Some(pm::TokenTree::Literal(x)) if x.to_string() == "0" => Ok(()),
@@ -176,6 +186,7 @@ fn check_for_zero(token: Option<&pm::TokenTree>, span: pm2::Span) -> Result<(), 
     }
 }
 
+/// Check for some sort of rust identifier, this could be do, not,...
 fn check_for_ident(
     token: Option<&pm::TokenTree>,
     span: pm2::Span,

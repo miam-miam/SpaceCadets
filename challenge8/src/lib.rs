@@ -3,6 +3,7 @@
 #![feature(alloc_error_handler)]
 #![feature(const_mut_refs)]
 
+/// A lot of the stuff to get the kernel working is heavily based off Philipp Oppermann's blog (https://os.phil-opp.com/)
 extern crate alloc;
 
 pub mod allocator;
@@ -10,7 +11,6 @@ pub mod fixed_size_block;
 pub mod gdt;
 pub mod interrupts;
 pub mod memory;
-pub mod serial;
 pub mod task;
 pub mod vga_buffer;
 

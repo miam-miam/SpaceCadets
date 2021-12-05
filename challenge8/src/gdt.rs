@@ -6,6 +6,8 @@ use x86_64::VirtAddr;
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 
 lazy_static! {
+    /// Create a TSS which holds a separate stack for double faults
+    /// as the stack may have been fully used up thus creating a triple fault (restarting the system)
     static ref TSS: TaskStateSegment = {
         let mut tss = TaskStateSegment::new();
         tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
@@ -20,6 +22,7 @@ lazy_static! {
 }
 
 lazy_static! {
+    /// Create a global descriptor table
     static ref GDT: (GlobalDescriptorTable, Selectors) = {
         let mut gdt = GlobalDescriptorTable::new();
         let code_selector = gdt.add_entry(Descriptor::kernel_code_segment());

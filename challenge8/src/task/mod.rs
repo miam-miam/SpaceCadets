@@ -13,12 +13,15 @@ use futures_util::FutureExt;
 pub mod executor;
 pub mod keyboard;
 
+/// A task contains the info to run an async future,
+/// each taskId is unique so that the same task isn't put twice in the executor.
 pub struct Task {
     id: TaskId,
     future: Pin<Box<dyn Future<Output = Vec<Task>>>>,
 }
 
 impl Task {
+    /// A task switcher which can return tasks to switch to
     pub fn new_task_switcher(future: impl Future<Output = Vec<Task>> + 'static) -> Task {
         Task {
             id: TaskId::new(),
@@ -26,6 +29,8 @@ impl Task {
         }
     }
 
+    /// A normal task that doesn't return any tasks.
+    /// An empty vec does not allocate any mem on the heap so this is still really fast.
     pub fn new(future: impl Future<Output = ()> + 'static) -> Task {
         Task {
             id: TaskId::new(),

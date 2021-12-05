@@ -1,9 +1,10 @@
-use crate::allocator::Locked;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::{
     mem,
     ptr::{self, NonNull},
 };
+
+use crate::allocator::Locked;
 
 /// The block sizes to use.
 ///
@@ -56,6 +57,11 @@ impl FixedSizeBlockAllocator {
     }
 }
 
+/// Implement the trait used for allocating stuff, more functions can be used,
+/// but they are not necessary as the trait can derive them automatically.
+/// For example the alloc_zeroed which will zero everything in the allocation.
+/// This could be done by allocating and then zeroing,
+/// but it may be possible to provide a faster implementation using the trait.
 unsafe impl GlobalAlloc for Locked<FixedSizeBlockAllocator> {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let mut allocator = self.lock();

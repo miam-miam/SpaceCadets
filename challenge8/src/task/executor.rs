@@ -38,34 +38,25 @@ impl Executor {
     }
 
     fn run_ready_tasks(&mut self) {
-        // destructure `self` to avoid borrow checker errors
-        let Self {
-            tasks,
-            task_queue,
-            waker_cache,
-        } = self;
-
-        while let Ok(task_id) = task_queue.pop() {
-            let task = match tasks.get_mut(&task_id) {
+        while let Ok(task_id) = self.task_queue.pop() {
+            let task = match self.tasks.get_mut(&task_id) {
                 Some(task) => task,
                 None => continue, // task no longer exists
             };
-            let waker = waker_cache
+            let waker = self
+                .waker_cache
                 .entry(task_id)
-                .or_insert_with(|| TaskWaker::new(task_id, task_queue.clone()));
+                .or_insert_with(|| TaskWaker::new(task_id, self.task_queue.clone()));
             let mut context = Context::from_waker(waker);
             match task.poll(&mut context) {
                 Poll::Ready(new_task) => {
                     // task done -> remove it and its cached waker
-                    tasks.remove(&task_id);
-                    waker_cache.remove(&task_id);
-                    for new_tasks in new_task {
-                        // Reusing spawn code as we had to destructure self.
-                        let task_id = new_tasks.id;
-                        if tasks.insert(new_tasks.id, new_tasks).is_some() {
-                            panic!("task with same ID already in tasks");
-                        }
-                        task_queue.push(task_id).expect("queue full");
+                    self.tasks.remove(&task_id);
+                    self.waker_cache.remove(&task_id);
+
+                    // add any new potential tasks.
+                    for new in new_task {
+                        self.spawn(new);
                     }
                 }
                 Poll::Pending => {}
@@ -73,6 +64,8 @@ impl Executor {
         }
     }
 
+    /// We must disable interrupts so that an interrupt doesn't happen right
+    /// before we sleep thus not waking us up until the next.
     fn sleep_if_idle(&self) {
         use x86_64::instructions::interrupts::{self, enable_and_hlt};
 
