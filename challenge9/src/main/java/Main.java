@@ -1,4 +1,7 @@
+import ScreenSaver.ScreenSaver;
 import Win32Calls.User32;
+import java.awt.EventQueue;
+import java.lang.reflect.InvocationTargetException;
 
 public class Main {
   public static int wait = 5;
@@ -14,16 +17,12 @@ public class Main {
     }
   }
 
-  public static void main(String[] args) throws InterruptedException {
-    boolean active = true;
+  public static void main(String[] args) throws InterruptedException, InvocationTargetException {
 
     while (true) {
       int idleSec = getIdleTimeMillis() / 1000;
-      if (active && idleSec >= wait) {
-        active = false;
-        System.out.println("Inactive");
-      } else if (!active && idleSec < wait) {
-        active = true;
+      if (!ScreenSaver.isActive() && idleSec >= wait) {
+        EventQueue.invokeAndWait(new ScreenSaver());
       }
       Thread.sleep(1000);
     }
