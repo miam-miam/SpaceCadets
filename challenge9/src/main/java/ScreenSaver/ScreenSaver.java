@@ -1,14 +1,14 @@
 package ScreenSaver;
 
-import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.GraphicsEnvironment;
-import java.awt.event.WindowAdapter;
+import java.awt.event.ActionEvent;
+import javax.swing.AbstractAction;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.SwingConstants;
+import javax.swing.Timer;
 import javax.swing.WindowConstants;
 
-public class ScreenSaver extends WindowAdapter implements Runnable {
+public class ScreenSaver implements Runnable {
   static boolean active = false;
 
   public static boolean isActive() {
@@ -22,14 +22,25 @@ public class ScreenSaver extends WindowAdapter implements Runnable {
     screenSaverFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
     screenSaverFrame.setUndecorated(true);
     screenSaverFrame.setResizable(false);
-    screenSaverFrame.add(
-        new JLabel("This is a Java Screensaver!", SwingConstants.CENTER), BorderLayout.CENTER);
+    screenSaverFrame.getContentPane().setBackground(Color.BLACK);
     screenSaverFrame.addMouseMotionListener(new MouseMotion(screenSaverFrame));
+    screenSaverFrame.addKeyListener(new Key(screenSaverFrame));
     screenSaverFrame.addWindowListener(new Window());
-    screenSaverFrame.addWindowListener(this);
-    screenSaverFrame.validate();
     GraphicsEnvironment.getLocalGraphicsEnvironment()
         .getDefaultScreenDevice()
         .setFullScreenWindow(screenSaverFrame);
+    DrawingPanel panel = new DrawingPanel(screenSaverFrame.getSize());
+    screenSaverFrame.getContentPane().add(panel);
+    screenSaverFrame.validate();
+    Timer timer =
+        new Timer(
+            16,
+            new AbstractAction() {
+              @Override
+              public void actionPerformed(ActionEvent e) {
+                panel.repaint();
+              }
+            });
+    timer.start();
   }
 }
