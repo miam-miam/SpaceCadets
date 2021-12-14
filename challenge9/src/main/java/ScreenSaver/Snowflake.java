@@ -12,7 +12,6 @@ public class Snowflake {
 
   static {
     try {
-      System.out.println("test");
       images =
           new Image[] {
             ImageIO.read(
@@ -53,6 +52,7 @@ public class Snowflake {
   public Image image;
   public int x;
   public int y;
+  private final int imageHeight;
 
   /**
    * Create a new Snowflake at a random x position.
@@ -63,8 +63,13 @@ public class Snowflake {
    */
   public Snowflake(int width, int height) throws IOException {
     image = images[random.nextInt(images.length)];
-    x = random.nextInt(width + image.getWidth(null)) - image.getWidth(null) - 1;
-    y = -image.getHeight(null);
+    if (image == null) {
+      throw new IOException("Could not fetch image");
+    }
+    int imageWidth = image.getWidth(null);
+    imageHeight = image.getHeight(null);
+    x = random.nextInt(width + imageWidth) - imageWidth - 1;
+    y = -imageHeight;
     this.height = height;
   }
 
@@ -76,6 +81,6 @@ public class Snowflake {
    */
   public boolean advance(int amount) {
     y += amount + speed;
-    return y > (height + image.getHeight(null));
+    return y > (height + imageHeight);
   }
 }

@@ -23,14 +23,18 @@ public class DrawingPanel extends JPanel {
     this.snowflakes = new ArrayList<>();
   }
 
+  /**
+   * Add a Snowflake to the list. The Exception could be thrown if the images have yet to load, in
+   * which case we shouldn't do anything.
+   */
   public void addSnowflake() {
     try {
       snowflakes.add(new Snowflake(getWidth(), getHeight()));
-    } catch (IOException e) {
-      e.printStackTrace();
+    } catch (IOException ignored) {
     }
   }
 
+  /** Paint the snowflakes to the screen. @param g the Graphics to paint on. */
   @Override
   protected void paintComponent(Graphics g) {
     super.paintComponent(g);
