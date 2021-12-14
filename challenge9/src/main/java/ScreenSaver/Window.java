@@ -3,6 +3,7 @@ package ScreenSaver;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 
+/** Window listener that closes the screensaver if the user tries to minimise it. */
 public class Window implements WindowListener {
 
   @Override

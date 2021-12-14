@@ -7,6 +7,12 @@ public class Main {
   public static int wait = 5;
   static boolean onWindows = System.getProperty("os.name").contains("Windows");
 
+  /**
+   * Checks if we are running on Windows, if we are we can directly find out the last time the user
+   * did something, if not we will need to just rely on mouse movements.
+   *
+   * @return number of milliseconds since the last idle time.
+   */
   public static int getIdleTimeMillis() {
     if (onWindows) {
       User32.LASTINPUTINFO lastInputInfo = new User32.LASTINPUTINFO();

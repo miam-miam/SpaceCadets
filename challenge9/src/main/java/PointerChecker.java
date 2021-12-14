@@ -14,6 +14,7 @@ public class PointerChecker {
     return singleton;
   }
 
+  /** @return The time in milliseconds elapsed since the pointer was last moved. */
   public int PointerChanged() {
     Point currentPoint = MouseInfo.getPointerInfo().getLocation();
     if (currentPoint.equals(lastPoint)) {

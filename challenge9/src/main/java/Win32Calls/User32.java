@@ -10,10 +10,8 @@ public interface User32 extends StdCallLibrary {
   User32 INSTANCE = Native.load("user32", User32.class);
 
   /**
-   * Retrieves the time of the last input event.
-   *
    * @see <a
-   *     href="https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getlastinputinfo">...</a>
+   *     href="https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getlastinputinfo">docs</a>
    * @return time of the last input event, in milliseconds
    */
   boolean GetLastInputInfo(LASTINPUTINFO result);
@@ -22,7 +20,7 @@ public interface User32 extends StdCallLibrary {
    * Contains the time of the last input.
    *
    * @see <a
-   *     href="https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-lastinputinfo">...</a>
+   *     href="https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-lastinputinfo">docs</a>
    */
   class LASTINPUTINFO extends Structure {
     public int cbSize = size();

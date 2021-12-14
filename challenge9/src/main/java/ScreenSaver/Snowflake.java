@@ -7,8 +7,8 @@ import java.util.Random;
 import javax.imageio.ImageIO;
 
 public class Snowflake {
+  private static final Random random = new Random();
   private static Image[] images;
-  private static Random random = new Random();
 
   static {
     try {
@@ -49,11 +49,18 @@ public class Snowflake {
   }
 
   private final int height;
+  private final int speed = random.nextInt(2);
   public Image image;
   public int x;
   public int y;
-  private int speed = random.nextInt(2);
 
+  /**
+   * Create a new Snowflake at a random x position.
+   *
+   * @param width The width of the drawing panel
+   * @param height The height of the drawing panel
+   * @throws IOException if the image of the snowflake cannot be read.
+   */
   public Snowflake(int width, int height) throws IOException {
     image = images[random.nextInt(images.length)];
     x = random.nextInt(width + image.getWidth(null)) - image.getWidth(null) - 1;
@@ -61,6 +68,12 @@ public class Snowflake {
     this.height = height;
   }
 
+  /**
+   * Advance the snowflake by a certain amount and speed.
+   *
+   * @param amount the amount to advance the snowflake by.
+   * @return whether the snowflake is still on the screen.
+   */
   public boolean advance(int amount) {
     y += amount + speed;
     return y > (height + image.getHeight(null));

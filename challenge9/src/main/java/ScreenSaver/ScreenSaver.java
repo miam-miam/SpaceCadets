@@ -3,7 +3,6 @@ package ScreenSaver;
 import java.awt.Color;
 import java.awt.GraphicsEnvironment;
 import java.awt.event.ActionEvent;
-import javax.swing.AbstractAction;
 import javax.swing.JFrame;
 import javax.swing.Timer;
 import javax.swing.WindowConstants;
@@ -32,15 +31,9 @@ public class ScreenSaver implements Runnable {
     DrawingPanel panel = new DrawingPanel(screenSaverFrame.getSize());
     screenSaverFrame.getContentPane().add(panel);
     screenSaverFrame.validate();
-    Timer timer =
-        new Timer(
-            16,
-            new AbstractAction() {
-              @Override
-              public void actionPerformed(ActionEvent e) {
-                panel.repaint();
-              }
-            });
+
+    // Repaint panel every 16 ms (about 60 fps)
+    Timer timer = new Timer(16, (ActionEvent e) -> panel.repaint());
     timer.start();
   }
 }

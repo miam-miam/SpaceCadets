@@ -3,6 +3,7 @@ package ScreenSaver;
 import java.awt.event.MouseEvent;
 import javax.swing.JFrame;
 
+/** Close ScreenSaver if the mouse moves. */
 public class MouseMotion implements java.awt.event.MouseMotionListener {
 
   private final JFrame screenSaverFrame;

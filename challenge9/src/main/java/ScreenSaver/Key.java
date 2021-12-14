@@ -4,6 +4,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import javax.swing.JFrame;
 
+/** Close ScreenSaver if a key is pressed. */
 public class Key implements KeyListener {
   private final JFrame screenSaverFrame;
 
