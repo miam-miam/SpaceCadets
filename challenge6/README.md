@@ -1,6 +1,6 @@
 # Challenge 6
 
-The [challenge](https://secure.ecs.soton.ac.uk/student/wiki/w/COMP1202/Space_Cadets/SCChallengeCircleDetection)
+The [challenge](Challenge.md)
 for this week was to create a GUI application that can detect circles from a webcam (preferably in
 real time).
 

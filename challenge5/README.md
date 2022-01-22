@@ -1,5 +1,5 @@
 # Challenge 5
-The [challenge](https://secure.ecs.soton.ac.uk/student/wiki/w/COMP1202/Space_Cadets/SCChallengeSpiro) for this week was to create a GUI application that generates spirographs. I decided to create graphical window whilst only outputting to the standard output.
+The [challenge](Challenge.md) for this week was to create a GUI application that generates spirographs. I decided to create graphical window whilst only outputting to the standard output.
 
 ## Methodology
 To do this I used the parametric equations to generate an x and y value at t, increasing the t value by a certain step. The generated x and y values could then be added to a treemap, which ensured that they were correctly sorted from 0,0 to 0,9 to 9,9 instead of insertion order. The parametric equations are just the ones from the [wiki](https://en.wikipedia.org/wiki/Spirograph).

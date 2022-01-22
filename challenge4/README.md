@@ -1,5 +1,5 @@
 # Challenge 4
-The [challenge](https://secure.ecs.soton.ac.uk/student/wiki/w/COMP1202/Space_Cadets/SCChallengeNetworking) for this week was to create a client-server chatroom. My implementation allows for multiple clients and is even end-to-end encrypted!
+The [challenge](Challenge.md) for this week was to create a client-server chatroom. My implementation allows for multiple clients and is even end-to-end encrypted!
 
 ## Methodology
 To do this I had to use quite a lot of threads and as we all know once there's threads, we need a way of synchronising them. Fortunately, in Java (most likely due to the JVM) locks are incredibly easy to make. All you need to do is use the synchronised keyword on function calls and the JVM will ensure you don't both try to read from the same value or anything stupid like that. In practice this meant I had a state class that kept a list of sent messages that were then discarded once all the connections had acted upon the messages.
