@@ -1,6 +1,6 @@
 # Challenge 7
 
-The [challenge](Challenge.md) for this week was to create an android application. I decided to make a type racer clone but for your phone! You can find the app (apk) on the [releases](https://github.com/miam-miam100/SpaceCadets/releases/tag/challenge7) page.
+The [challenge](Challenge.md) for this week was to create an android application. I decided to make a type racer clone but for your phone! You can find the app (apk) on the [releases](https://github.com/miam-miam/SpaceCadets/releases/tag/challenge7) page.
 
 ## Methodology
 

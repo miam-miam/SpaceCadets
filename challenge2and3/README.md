@@ -1,7 +1,7 @@
 # Challenge 3
 
 The [challenge](Challenge.md) for this week was to improve the BareBones interpreter we did
-last [week](https://github.com/miam-miam100/SpaceCadets/tree/challenge2/challenge2).
+last [week](https://github.com/miam-miam/SpaceCadets/tree/challenge2/challenge2).
 
 ## Methodology
 
@@ -12,7 +12,7 @@ now only found the commands for each line.
 
 I then tried using a C/C++/Rust way to parse the source code as I forgot that Java was garbage
 collected so was keeping everything in separate lists. (My failed experiment can be
-found [here](https://github.com/miam-miam100/SpaceCadets/tree/challenge2-procedural/challenge2)). I
+found [here](https://github.com/miam-miam/SpaceCadets/tree/challenge2-procedural/challenge2)). I
 felt that whilst it did work my solution was being hindered by Java. Thus, as any normal person
 would do I decided to scrap everything (even though it was working) and rewrote my solution using a
 much more complex (and probably slower) OOP solution whereby every command was an object.
